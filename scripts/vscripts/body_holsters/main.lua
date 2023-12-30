@@ -1,15 +1,16 @@
 require "core"
 
-local HOLSTER_DISTANCE = 50
+local HOLSTER_DISTANCE = 32
 local GRAB_DISTANCE = 6
-local HOLSTER_MIN_HEIGHT = 8
-local HOLSTER_MAX_HEIGHT = 320
+local HOLSTER_MIN_HEIGHT = -32
+local HOLSTER_MAX_HEIGHT = 16
 
 Convars:RegisterConvar("holsters_grab_distance", tostring(GRAB_DISTANCE), "", 0)
 Convars:RegisterConvar("holsters_holster_distance", tostring(HOLSTER_DISTANCE), "Max distance from the player body a weapon can be holstered when released", 0)
 Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGHT), "Min height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_visible_weapons", "1", "", 0)
+Convars:RegisterConvar("holsters_debug", "0", "", 0)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
 
@@ -22,7 +23,7 @@ local cloneName = "__weapon_clone"
 ---@return HolsteredWeaponClone?
 function GetHolsteredWeaponClone(classname)
     for _, clone in ipairs(Entities:FindAllByName(cloneName)) do
-        if clone:GetClassname() == classname then
+        if clone:GetClassname() == classname or clone:GetModelName() == classname then
             return clone--[[@as HolsteredWeaponClone]]
         end
     end
@@ -48,9 +49,10 @@ local function cloneWeapon(weapon, class, spawnkeys)
         origin = weapon:GetOrigin(),
         model = weapon:GetModelName(),
         solid = "0",
-        targetname = "__weapon_clone",
+        targetname = cloneName,
         rendermode = Convars:GetBool("holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
-        vscripts = ""
+        vscripts = "",
+        disableshadows = "1",
     }, spawnkeys))
     clone:SetMaterialGroupHash(weapon:GetMaterialGroupHash())
     clone:SetMaterialGroupMask(weapon:GetMaterialGroupMask())
@@ -82,17 +84,15 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
     if weapon ~= nil then
         local origin = weapon:GetCenter()
         local holsterModelPos = getPlayerHolsterOrigin()
-        -- print((playerPos - origin):Length2D()
-        -- , (origin.z - playerPos.z)
-        -- , (origin.z - playerPos.z)
-        -- )
+
+        print(origin.z - holsterModelPos.z)
         if (holsterModelPos - origin):Length2D() <= Convars:GetFloat("holsters_holster_distance")
         and (origin.z - holsterModelPos.z) > Convars:GetFloat("holsters_holster_min_height")
         and (origin.z - holsterModelPos.z) < Convars:GetFloat("holsters_holster_max_height")
         then
 
             -- Destroy old clone if reholstering from a weapon switch
-            local existingWeaponClone = GetHolsteredWeaponClone(weapon:GetClassname())
+            local existingWeaponClone = GetHolsteredWeaponClone(weapon:GetModelName())
             if existingWeaponClone then
                 existingWeaponClone:Kill()
             end
@@ -101,28 +101,11 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
             local weaponClone = cloneWeapon(weapon)
             weaponClone:SaveString("weaponClass", weapon:GetClassname())
 
-            -- Player:RemoveWeapons(weapon)
-            -- Player:UpdateWeapons({weapon}, nil)
-            -- print("Finished removal!>")
-
             -- Remove weapon from hand
             Player:SetWeapon("hand_use_controller")
-            -- Player:UpdateWeapons({weapon}, "hand_use_controller")
 
             local backpack = Player:GetBackpack()
             weaponClone:SetParent(backpack ~= nil and backpack or Player.HMDAvatar, "")
-
-
-
-            -- weaponClone:FollowEntity(weapon, false)
-            -- weapon:SetParent(Player, "")
-            -- local zDiff = (weapon:GetAbsOrigin().z - Player.HMDAvatar:GetAbsOrigin().z)
-            -- print(zDiff)
-
-            -- weapon:SetContextThink("holsterThink", function()
-            --     weapon:SetAbsOrigin(Vector(weapon:GetAbsOrigin().x, weapon:GetAbsOrigin().y, Player.HMDAvatar:GetAbsOrigin().z + zDiff))
-            --     return 0
-            -- end, 0)
 
             StartSoundEventFromPosition("body_holsters.holster", origin)
 
@@ -135,21 +118,14 @@ end)
 local inputPressCallback = function(params)
     print("PRESS")
     local weapon = Player:GetWeapon()
-    -- print("weapon == nil", weapon)
-    -- print("Player.PrimaryHand.ItemHeld == nil", Player.PrimaryHand.ItemHeld == nil)
     if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
         local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
         for _, clone in ipairs(Entities:FindAllByName(cloneName)) do
             local attachment = clone:ScriptLookupAttachment("vr_controller_root")
-            -- print(VectorDistance(clone:GetAttachmentOrigin(attachment), handOrigin))
             if VectorDistance(clone:GetAttachmentOrigin(attachment), handOrigin) <= Convars:GetFloat("holsters_grab_distance") then
                 local weaponClass = clone:LoadString("weaponClass")
                 Player:SetWeapon(weaponClass)
-                -- weapon = clone:GetMoveParent()
-                -- weapon:SetParent(nil, "")
                 clone:Kill()
-                -- weapon:Grab(Player.PrimaryHand)
-                -- weapon:SetContextThink("holsterThink", nil, 0)
                 StartSoundEventFromPosition("body_holsters.unholster", handOrigin)
                 devprints("Unholstering", weaponClass)
                 break
@@ -176,9 +152,12 @@ local debug = true
 if debug then
     RegisterPlayerEventCallback("vr_player_ready", function (params)
         Player:SetContextThink("debugholster", function()
+            if not Convars:GetBool("holsters_debug") then return 0 end
+
             local holsterDist = Convars:GetFloat("holsters_holster_distance")
-            local vec = Player:GetAbsOrigin() + Vector(-holsterDist, -holsterDist, Convars:GetFloat("holsters_holster_min_height"))
-            local vec2 = Player:GetAbsOrigin() + Vector(holsterDist, holsterDist, Convars:GetFloat("holsters_holster_max_height"))
+            local origin = getPlayerHolsterOrigin()
+            local vec = origin + Vector(-holsterDist, -holsterDist, Convars:GetFloat("holsters_holster_min_height"))
+            local vec2 = origin + Vector(holsterDist, holsterDist, Convars:GetFloat("holsters_holster_max_height"))
             debugoverlay:Box(vec, vec2, 0, 255, 0, 255, false, 0)
 
             local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
