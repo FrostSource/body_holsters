@@ -393,7 +393,7 @@ end
 ---
 ---@param handle EntityHandle # Entity to save on.
 ---@param name string # Name to save as.
----@param entity EntityHandle # Entity to save.
+---@param entity EntityHandle|nil # Entity to save.
 ---@return boolean # If the save was successful.
 function Storage.SaveEntity(handle, name, entity)
     handle = resolveHandle(handle)

@@ -568,7 +568,7 @@ ListenToGameEvent("player_activate", function()
         local player = Entities:GetLocalPlayer()
         player:SetContextThink("InputInit", function()
             if not player:GetHMDAvatar() then
-                Warning("Input could not find HMD, make sure VR mode is enabled. Disabling Input...")
+                Warning("Input could not find HMD, make sure VR mode is enabled. Disabling Input...\n")
                 return nil
             end
             SetPrimaryHand(Convars:GetBool("hlvr_left_hand_primary") and 0 or 1)
