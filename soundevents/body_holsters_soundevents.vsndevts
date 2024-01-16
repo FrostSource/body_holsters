@@ -1,0 +1,38 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+    "body_holsters.holster" =
+	{
+		type = "hlvr_default_3d"
+		volume = 1.0
+		volume_falloff_min = 16.0
+		volume_falloff_max = 512.0
+		spread_min = 30
+		spread_max = 150
+		vsnd_files = 
+		[
+			"sounds/body_holsters/holster01.vsnd",
+			"sounds/body_holsters/holster02.vsnd",
+			"sounds/body_holsters/holster03.vsnd",
+			"sounds/body_holsters/holster04.vsnd",
+			"sounds/body_holsters/holster05.vsnd",
+		]
+	}
+
+    "body_holsters.unholster" =
+	{
+		type = "hlvr_default_3d"
+		volume = 1.0
+		volume_falloff_min = 16.0
+		volume_falloff_max = 512.0
+		spread_min = 30
+		spread_max = 150
+		vsnd_files = 
+		[
+			"sounds/body_holsters/unholster01.vsnd",
+			"sounds/body_holsters/unholster02.vsnd",
+			"sounds/body_holsters/unholster03.vsnd",
+			"sounds/body_holsters/unholster04.vsnd",
+			"sounds/body_holsters/unholster05.vsnd",
+		]
+	}
+}
