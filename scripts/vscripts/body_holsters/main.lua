@@ -37,24 +37,24 @@ BodyHolsters.slots =
     -- -y = right
     {
         name = "left_hip",
-        offset = Vector(-1, 7, -22),
+        offset = Vector(-3, 7, -22),
         radius = 9,
         storedWeapon = nil,
     },
     {
         name = "right_hip",
-        offset = Vector(-1, -7, -22),
+        offset = Vector(-3, -7, -22),
         radius = 9,
     },
 
     {
         name = "left_underarm",
-        offset = Vector(-2, 6, -10),
+        offset = Vector(-3, 6, -10),
         radius = 5.5,
     },
     {
         name = "right_underarm",
-        offset = Vector(-2, -6, -10),
+        offset = Vector(-3, -6, -10),
         radius = 5.5,
     },
 
@@ -70,8 +70,6 @@ BodyHolsters.slots =
     },
 }
 
--- function BodyHolsters:
-
 ---Get holstered weapon clone based on the weapon class it represents.
 ---@param weapon EntityHandle
 ---@return EntityHandle?
@@ -79,8 +77,9 @@ function GetHolsteredWeaponClone(weapon)
     return Entities:FindByName(nil, weapon:GetName() .. "_clone")
 end
 
----commentary_started
----@return Vector, EntityHandle
+---Get data related to holstering, usually to do with the backpack.
+---@return Vector holsterOrigin # The origin of the holster entity.
+---@return EntityHandle holsterEnt # The entity used for holstering.
 local function getPlayerHolsterData()
     local backpack = Player:GetBackpack()
     if backpack then
@@ -90,7 +89,7 @@ local function getPlayerHolsterData()
     end
 end
 
----commentary_started
+---Get slots within range of `pos`, sorted by ascending distance.
 ---@param pos Vector
 ---@return BodyHolstersSlot[]
 local function getNearestSlots(pos)
@@ -116,6 +115,12 @@ local function getNearestSlots(pos)
     return sortedSlots
 end
 
+---Get the primary hand origin.
+---@return Vector
+local function getHandPostiion()
+    return Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
+end
+
 local debugballs = {}
 
 local function holsterDebugThink()
@@ -139,15 +144,10 @@ local function holsterDebugThink()
             end
         else
             -- Slot empty and hand has weapon
-            if weapon ~= nil and VectorDistance(slotOrigin, Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))) <= slot.radius then
+            if weapon ~= nil and VectorDistance(slotOrigin, getHandPostiion()) <= slot.radius then
                 r,g,b = 0,255,0 --green
             end
         end
-        -- local forward = Player.HMDAvatar:GetForwardVector() forward.z = 0 forward = forward:Normalized()
-        -- local up = Player.HMDAvatar:GetUpVector() up.z = 0 up = up:Normalized()
-        -- local right = Player.HMDAvatar:GetRightVector() right.z = 0 right = right:Normalized()
-        -- local offset = Vector(-5, 8, -20)
-        -- local pos = Player.HMDAvatar:GetAbsOrigin() + offset.x * forward + offset.y * right + offset.z
         -- debugballs[i]:SetAbsOrigin(slotOrigin)
         debugoverlay:Sphere(slotOrigin, slot.radius, r, g, b, 255, false, 0)
         debugoverlay:Text(slotOrigin, 0, slot.name, 0, 255, 255, 255, 255, 0)
@@ -162,11 +162,11 @@ Convars:RegisterCommand("holsters_debug", function (_, on)
         local _,ent = getPlayerHolsterData()
         local s
 
-        s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
-            model="models/controller/vr_hmd.vmdl",
-        })
-        s:SetParent(Player.HMDAvatar, "")
-        s:ResetLocal()
+        -- s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
+        --     model="models/controller/vr_hmd.vmdl",
+        -- })
+        -- s:SetParent(Player.HMDAvatar, "")
+        -- s:ResetLocal()
 
         -- s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
         --     model="models/items/backpack/backpack_inventory.vmdl",
@@ -234,9 +234,9 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
         existingWeaponClone:Kill()
     end
 
-    if weapon:GetName() == "" then
-        weapon:SetEntityName("player_weapon_" .. (weapon:GetClassname():match(".*_([^_]+)$") or weapon:GetClassname()))
-    end
+    -- if weapon:GetName() == "" then
+    --     weapon:SetEntityName("player_weapon_" .. (weapon:GetClassname():match(".*_([^_]+)$") or weapon:GetClassname()))
+    -- end
 
     -- Create new clone
     local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName().."_clone" })
@@ -249,7 +249,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     -- weaponClone:SaveString("weaponClass", weapon:GetClassname())
 
     slot.storedWeapon = weapon
-    Player:SaveEntity("BodyHolster_"..slot.name, weapon)
+    Player:SaveEntity("BodyHolster_"..slot.name, weapon, true)
 
     if not silent then
         StartSoundEventReliable("body_holsters.holster", Player)
@@ -300,18 +300,19 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
         local holsterPos, holsterEnt = getPlayerHolsterData()
-        local weaponOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))--weapon:GetCenter()
-        local slots = getNearestSlots(weaponOrigin)
+        local handOrigin = getHandPostiion()
+        local slots = getNearestSlots(handOrigin)
 
         for _, slot in ipairs(slots) do
-            local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
+            -- local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
             if
                --VectorDistance(slotOrigin, weaponOrigin) <= slot.radius and
                (slot.storedWeapon == nil or slot.storedWeapon == weapon)
             then
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
+                Player.PrimaryHand:FireHapticPulse(1)
 
-                -- Remove weapon from handles
+                -- Remove weapon from hand
                 Player:SetWeapon("hand_use_controller")
 
                 devprints("Holstered", weapon:GetClassname(), weapon:GetName())
@@ -328,11 +329,11 @@ local inputPressCallback = function(params)
     -- Make sure player isn't holding anything first
     if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
         local holsterPos, holsterEnt = getPlayerHolsterData()
-        local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
+        local handOrigin = getHandPostiion()
         local slots = getNearestSlots(handOrigin)
 
         for _, slot in ipairs(slots) do
-            local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
+            -- local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
             if
                --VectorDistance(slotOrigin, handOrigin) <= slot.radius and
                slot.storedWeapon ~= nil
@@ -342,6 +343,7 @@ local inputPressCallback = function(params)
                 
                 devprints("Unholstering", Debug.EntStr(slot.storedWeapon))
                 BodyHolsters:UnholsterSlot(slot, false)
+                Player.PrimaryHand:FireHapticPulse(2)
                 break
             end
         end
@@ -361,6 +363,21 @@ Convars:RegisterCommand("holsters_require_trigger_to_unholster", function (_, on
     Input:RegisterCallback("press", 2, on and DIGITAL_INPUT_USE or DIGITAL_INPUT_USE_GRIP, 1, inputPressCallback)
 end, "Trigger button (fire) must be pressed to unholster a weapon.", 0)
 
+local handWithinSlot = false
+
+local function playerHolsterThink()
+    -- Notify hand within slot
+    if getNearestSlots(getHandPostiion())[1] ~= nil then
+        if handWithinSlot == false then
+            handWithinSlot = true
+            Player.PrimaryHand:FireHapticPulse(1)
+        end
+    else
+        handWithinSlot = false
+    end
+    return 0.1
+end
+
 
 local debug = true
 
@@ -369,6 +386,8 @@ RegisterPlayerEventCallback("vr_player_ready", function (params)
     for _, slot in ipairs(BodyHolsters.slots) do
         slot.storedWeapon = Player:LoadEntity("BodyHolster_"..slot.name)
     end
+
+    Player:SetContextThink("playerHolsterThink", playerHolsterThink, 0)
 
     if debug and IsInToolsMode() then
         SendToConsole("holsters_debug 1")
