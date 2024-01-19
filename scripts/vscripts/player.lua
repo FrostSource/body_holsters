@@ -673,7 +673,7 @@ function CBasePlayer:UpdateWeapons(removes, set)
     while attachment ~= nil do
         if not removes or not (vlua.find(removes, attachment) or vlua.find(removes, attachment:GetClassname())) then
             if attachment == set or attachment:GetClassname() == set then
-                print("setFound", attachment:GetClassname())
+                -- print("setFound", attachment:GetClassname())
                 setFound = attachment
             end
 
@@ -686,7 +686,7 @@ function CBasePlayer:UpdateWeapons(removes, set)
                 end
             end
         end
-        print("Removing", attachment:GetClassname())
+        -- print("Removing", attachment:GetClassname())
         hand:RemoveHandAttachmentByHandle(attachment)
         -- Get next current attachment
         attachment = hand:GetHandAttachment()
@@ -696,14 +696,14 @@ function CBasePlayer:UpdateWeapons(removes, set)
     for _, specialName in ipairs(specialAttachmentsOrder) do
         local specialAttachment = specialAttachmentsFound[specialName]
         if specialAttachment then
-                print("Adding special", specialAttachment:GetClassname())
-                hand:AddHandAttachment(specialAttachment)
+            -- print("Adding special", specialAttachment:GetClassname())
+            hand:AddHandAttachment(specialAttachment)
         end
     end
 
     -- Add back attachments that weren't removed
     for _, removedAttachment in ipairs(attachments) do
-        print("Adding", removedAttachment:GetClassname())
+        -- print("Adding", removedAttachment:GetClassname())
         if removedAttachment ~= setFound then
             hand:AddHandAttachment(removedAttachment)
         end

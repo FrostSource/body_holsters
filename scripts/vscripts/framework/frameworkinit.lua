@@ -1,5 +1,5 @@
 -- Don't use frameworkinit if Scalable Init Support is enabled
-if Convars:GetStr("default_enabled_addons_list"):find("2182586257") then
+if not IsInToolsMode() and Convars:GetStr("default_enabled_addons_list"):find("2182586257") then
     return
 end
 
