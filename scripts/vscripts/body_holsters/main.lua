@@ -11,6 +11,7 @@ Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGH
 Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_visible_weapons", "1", "", 0)
 -- Convars:RegisterConvar("holsters_debug", "0", "", 0)
+Convars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
 
@@ -299,6 +300,10 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
     print("RELEASE")
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
+        if weapon:GetClassname() == "hlvr_multitool" and not Convars:GetBool("holsters_allow_multitool") then
+            StartSoundEventReliable("Inventory.Invalid", Player)
+            return
+        end
         local holsterPos, holsterEnt = getPlayerHolsterData()
         local handOrigin = getHandPostiion()
         local slots = getNearestSlots(handOrigin)
