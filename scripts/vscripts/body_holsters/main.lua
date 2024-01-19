@@ -1,14 +1,14 @@
 require "core"
 
-local HOLSTER_DISTANCE = 32
-local GRAB_DISTANCE = 6
-local HOLSTER_MIN_HEIGHT = -32
-local HOLSTER_MAX_HEIGHT = 16
+-- local HOLSTER_DISTANCE = 32
+-- local GRAB_DISTANCE = 6
+-- local HOLSTER_MIN_HEIGHT = -32
+-- local HOLSTER_MAX_HEIGHT = 16
 
-Convars:RegisterConvar("holsters_grab_distance", tostring(GRAB_DISTANCE), "", 0)
-Convars:RegisterConvar("holsters_holster_distance", tostring(HOLSTER_DISTANCE), "Max distance from the player body a weapon can be holstered when released", 0)
-Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGHT), "Min height from player feet that a weapon can be holstered.", 0)
-Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
+-- Convars:RegisterConvar("holsters_grab_distance", tostring(GRAB_DISTANCE), "", 0)
+-- Convars:RegisterConvar("holsters_holster_distance", tostring(HOLSTER_DISTANCE), "Max distance from the player body a weapon can be holstered when released", 0)
+-- Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGHT), "Min height from player feet that a weapon can be holstered.", 0)
+-- Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
 -- Convars:RegisterConvar("holsters_debug", "0", "", 0)
 Convars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
@@ -19,8 +19,12 @@ local holsterGrabButton = DIGITAL_INPUT_USE_GRIP
 
 local cloneName = "__weapon_clone"
 
+local version = "v0.1.0"
+
 ---@class BodyHolsters
 BodyHolsters = {}
+BodyHolsters.version = version
+BodyHolsters.__index = BodyHolsters
 
 ---@class BodyHolstersSlot
 ---@field name string # Name of the slot.
@@ -75,7 +79,7 @@ BodyHolsters.slots =
 ---@param weapon EntityHandle
 ---@return EntityHandle?
 function GetHolsteredWeaponClone(weapon)
-    return Entities:FindByName(nil, weapon:GetName() .. "_clone")
+    return Entities:FindByName(nil, weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone")
 end
 
 ---Get data related to holstering, usually to do with the backpack.
@@ -118,7 +122,7 @@ end
 
 ---Get the primary hand origin.
 ---@return Vector
-local function getHandPostiion()
+local function getHandPosition()
     return Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
 end
 
@@ -145,7 +149,7 @@ local function holsterDebugThink()
             end
         else
             -- Slot empty and hand has weapon
-            if weapon ~= nil and VectorDistance(slotOrigin, getHandPostiion()) <= slot.radius then
+            if weapon ~= nil and VectorDistance(slotOrigin, getHandPosition()) <= slot.radius then
                 r,g,b = 0,255,0 --green
             end
         end
@@ -309,7 +313,7 @@ function BodyHolsters:UnholsterWeapon(weapon, silent)
 end
 
 Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
-    print("RELEASE")
+    devprint("RELEASE")
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
         if weapon:GetClassname() == "hlvr_multitool" and not Convars:GetBool("holsters_allow_multitool") then
@@ -317,9 +321,8 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
             return
         end
         local holsterPos, holsterEnt = getPlayerHolsterData()
-        local handOrigin = getHandPostiion()
+        local handOrigin = getHandPosition()
         local slots = getNearestSlots(handOrigin)
-
         for _, slot in ipairs(slots) do
             -- local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
             if
@@ -341,12 +344,12 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
 end)
 
 local inputPressCallback = function(params)
-    print("PRESS")
+    devprint("PRESS")
     local weapon = Player:GetWeapon()
     -- Make sure player isn't holding anything first
     if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
         local holsterPos, holsterEnt = getPlayerHolsterData()
-        local handOrigin = getHandPostiion()
+        local handOrigin = getHandPosition()
         local slots = getNearestSlots(handOrigin)
 
         for _, slot in ipairs(slots) do
@@ -411,6 +414,6 @@ RegisterPlayerEventCallback("vr_player_ready", function (params)
     if debug and IsInToolsMode() then
         SendToConsole("holsters_debug 1")
     end
-end)
 
-print("BODY HOLSTERS ACTIVE")
+    print("Body Holsters ".. version .." initialized...")
+end)
