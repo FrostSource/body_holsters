@@ -224,6 +224,16 @@ local function cloneWeapon(weapon, class, spawnkeys)
     return clone
 end
 
+function BodyHolsters:CanStoreInSlot(slot, weapon)
+    if
+        (slot.storedWeapon == nil or slot.storedWeapon == weapon)
+        and weapon ~= nil and (weapon:GetClassname() ~= "hlvr_multitool" or Convars:GetBool("holsters_allow_multitool"))
+    then
+        return true
+    end
+    return false
+end
+
 ---Holster a weapon in a slot.
 ---@param slot BodyHolstersSlot
 ---@param weapon EntityHandle
@@ -371,10 +381,12 @@ Convars:RegisterCommand("holsters_require_trigger_to_unholster", function (_, on
 end, "Trigger button (fire) must be pressed to unholster a weapon.", 0)
 
 local handWithinSlot = false
-
 local function playerHolsterThink()
     -- Notify hand within slot
-    if getNearestSlots(getHandPostiion())[1] ~= nil then
+    local slot = getNearestSlots(getHandPosition())[1]
+    if slot ~= nil
+        and (BodyHolsters:CanStoreInSlot(slot, Player:GetWeapon()) or (Player:GetWeapon() == nil and slot.storedWeapon ~= nil))
+    then
         if handWithinSlot == false then
             handWithinSlot = true
             Player.PrimaryHand:FireHapticPulse(1)
