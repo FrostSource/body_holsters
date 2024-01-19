@@ -398,10 +398,13 @@ end
 ---@return boolean # If the save was successful.
 function Storage.SaveEntity(handle, name, entity, useClassname)
     handle = resolveHandle(handle)
-    if not entity or not IsValidEntity(entity) then
+    if entity == nil then
         Storage.SaveString(handle, name..separator.."targetname", "")
+        Storage.SaveString(handle, name..separator.."classname", "")
         handle:SetContext(name..separator.."unique", "", 0)
         handle:SetContext(name..separator.."type", "entity", 0)
+        return true
+    elseif not entity or not IsValidEntity(entity) then
         return false
     end
 
