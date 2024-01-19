@@ -1,16 +1,6 @@
 require "core"
 
--- local HOLSTER_DISTANCE = 32
--- local GRAB_DISTANCE = 6
--- local HOLSTER_MIN_HEIGHT = -32
--- local HOLSTER_MAX_HEIGHT = 16
-
--- Convars:RegisterConvar("holsters_grab_distance", tostring(GRAB_DISTANCE), "", 0)
--- Convars:RegisterConvar("holsters_holster_distance", tostring(HOLSTER_DISTANCE), "Max distance from the player body a weapon can be holstered when released", 0)
--- Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGHT), "Min height from player feet that a weapon can be holstered.", 0)
--- Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
--- Convars:RegisterConvar("holsters_debug", "0", "", 0)
 Convars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
@@ -126,8 +116,6 @@ local function getHandPosition()
     return Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
 end
 
-local debugballs = {}
-
 local function holsterDebugThink()
     local holsterOrigin, holsterEnt = getPlayerHolsterData()
     local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
@@ -153,7 +141,6 @@ local function holsterDebugThink()
                 r,g,b = 0,255,0 --green
             end
         end
-        -- debugballs[i]:SetAbsOrigin(slotOrigin)
         debugoverlay:Sphere(slotOrigin, slot.radius, r, g, b, 255, false, 0)
         debugoverlay:Text(slotOrigin, 0, slot.name, 0, 255, 255, 255, 255, 0)
     end
@@ -164,33 +151,7 @@ end
 Convars:RegisterCommand("holsters_debug", function (_, on)
     on = truthy(on)
     if on then
-        local _,ent = getPlayerHolsterData()
-        local s
-
-        -- s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
-        --     model="models/controller/vr_hmd.vmdl",
-        -- })
-        -- s:SetParent(Player.HMDAvatar, "")
-        -- s:ResetLocal()
-
-        -- s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
-        --     model="models/items/backpack/backpack_inventory.vmdl",
-        -- })
-        -- s:SetParent(ent, "")
-        -- s:ResetLocal()
-
         Player:SetContextThink("holsterDebugThink", holsterDebugThink, 0)
-
-        -- for i, slot in ipairs(BodyHolsters.slots) do
-        --     s = SpawnEntityFromTableSynchronous("prop_dynamic_override", {
-        --         model="models/dev/unit_radius_sphere.vmdl",
-        --     })
-        --     s:SetAbsScale(slot.radius)
-        --     s:SetParent(ent, "")
-        --     s:SetLocalOrigin(slot.offset)
-        --     s:SetLocalAngles(0,0,0)
-        --     debugballs[i] = s
-        -- end
     else
         Player:SetContextThink("holsterDebugThink", nil, 0)
     end
@@ -249,10 +210,6 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
         existingWeaponClone:Kill()
     end
 
-    -- if weapon:GetName() == "" then
-    --     weapon:SetEntityName("player_weapon_" .. (weapon:GetClassname():match(".*_([^_]+)$") or weapon:GetClassname()))
-    -- end
-
     -- Create new clone
     if Convars:GetBool("holsters_visible_weapons") then
         local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
@@ -263,7 +220,6 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
             weaponClone:SetLocalQAngle(slot.angles)
         end
     end
-    -- weaponClone:SaveString("weaponClass", weapon:GetClassname())
 
     slot.storedWeapon = weapon
     Player:SaveEntity("BodyHolster_"..slot.name, weapon, true)
@@ -320,15 +276,10 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
             StartSoundEventReliable("Inventory.Invalid", Player)
             return
         end
-        local holsterPos, holsterEnt = getPlayerHolsterData()
         local handOrigin = getHandPosition()
         local slots = getNearestSlots(handOrigin)
         for _, slot in ipairs(slots) do
-            -- local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
-            if
-               --VectorDistance(slotOrigin, weaponOrigin) <= slot.radius and
-               (slot.storedWeapon == nil or slot.storedWeapon == weapon)
-            then
+            if slot.storedWeapon == nil or slot.storedWeapon == weapon then
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
                 Player.PrimaryHand:FireHapticPulse(1)
 
@@ -348,19 +299,14 @@ local inputPressCallback = function(params)
     local weapon = Player:GetWeapon()
     -- Make sure player isn't holding anything first
     if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
-        local holsterPos, holsterEnt = getPlayerHolsterData()
         local handOrigin = getHandPosition()
         local slots = getNearestSlots(handOrigin)
 
         for _, slot in ipairs(slots) do
-            -- local slotOrigin = holsterPos + holsterEnt:TransformPointEntityToWorld(slot.offset)
-            if
-               --VectorDistance(slotOrigin, handOrigin) <= slot.radius and
-               slot.storedWeapon ~= nil
-            then
-                
+            if slot.storedWeapon ~= nil then
+
                 Player:SetWeapon(slot.storedWeapon)
-                
+
                 devprints("Unholstering", Debug.EntStr(slot.storedWeapon))
                 BodyHolsters:UnholsterSlot(slot, false)
                 Player.PrimaryHand:FireHapticPulse(2)
