@@ -9,7 +9,7 @@ Convars:RegisterConvar("holsters_grab_distance", tostring(GRAB_DISTANCE), "", 0)
 Convars:RegisterConvar("holsters_holster_distance", tostring(HOLSTER_DISTANCE), "Max distance from the player body a weapon can be holstered when released", 0)
 Convars:RegisterConvar("holsters_holster_min_height", tostring(HOLSTER_MIN_HEIGHT), "Min height from player feet that a weapon can be holstered.", 0)
 Convars:RegisterConvar("holsters_holster_max_height", tostring(HOLSTER_MAX_HEIGHT), "Max height from player feet that a weapon can be holstered.", 0)
-Convars:RegisterConvar("holsters_visible_weapons", "1", "", 0)
+Convars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
 -- Convars:RegisterConvar("holsters_debug", "0", "", 0)
 Convars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
 
@@ -240,12 +240,14 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     -- end
 
     -- Create new clone
-    local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName().."_clone" })
-    local _, holsterEnt = getPlayerHolsterData()
-    weaponClone:SetParent(holsterEnt, "")
-    weaponClone:SetLocalOrigin(slot.offset)
-    if slot.angles then
-        weaponClone:SetLocalQAngle(slot.angles)
+    if Convars:GetBool("holsters_visible_weapons") then
+        local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
+        local _, holsterEnt = getPlayerHolsterData()
+        weaponClone:SetParent(holsterEnt, "")
+        weaponClone:SetLocalOrigin(slot.offset)
+        if slot.angles then
+            weaponClone:SetLocalQAngle(slot.angles)
+        end
     end
     -- weaponClone:SaveString("weaponClass", weapon:GetClassname())
 
