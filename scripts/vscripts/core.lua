@@ -49,6 +49,7 @@ ifrequire "gesture"
 ifrequire "player"
 ifrequire "class"
 
+ifrequire "util.easyconvars"
 ifrequire "gameplay.smooth_speed"
 
 -- Common third-party libraries

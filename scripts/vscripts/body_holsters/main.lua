@@ -1,9 +1,9 @@
 require "core"
 
-EasyConvars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
-EasyConvars:SetPersistent("holsters_visible_weapons", true)
-EasyConvars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
-EasyConvars:SetPersistent("holsters_allow_multitool", true)
+EasyConvars:RegisterConvar("body_holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
+EasyConvars:SetPersistent("body_holsters_visible_weapons", true)
+EasyConvars:RegisterConvar("body_holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
+EasyConvars:SetPersistent("body_holsters_allow_multitool", true)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
 
@@ -67,7 +67,7 @@ BodyHolsters.slots =
     },
 }
 
-Convars:RegisterCommand("holsters_slot", function (_, name, x, y, z, radius)
+Convars:RegisterCommand("body_holsters_slot", function (_, name, x, y, z, radius)
     -- Printing all slots if no name given
     if name == nil then
         for index, slot in ipairs(BodyHolsters.slots) do
@@ -197,7 +197,7 @@ local function holsterDebugThink()
     return 0
 end
 
-Convars:RegisterCommand("holsters_debug", function (_, on)
+Convars:RegisterCommand("body_holsters_debug", function (_, on)
     on = truthy(on)
     if on then
         Player:SetContextThink("holsterDebugThink", holsterDebugThink, 0)
@@ -218,7 +218,7 @@ local function cloneWeapon(weapon, class, spawnkeys)
         model = weapon:GetModelName(),
         solid = "0",
         targetname = cloneName,
-        rendermode = EasyConvars:GetBool("holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
+        -- rendermode = EasyConvars:GetBool("body_holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
         vscripts = "",
         disableshadows = "1",
     }, spawnkeys))
@@ -226,14 +226,14 @@ local function cloneWeapon(weapon, class, spawnkeys)
     clone:SetMaterialGroupMask(weapon:GetMaterialGroupMask())
 
     -- Don't need children if weapons are invisible
-    if EasyConvars:GetBool("holsters_visible_weapons") then
+    -- if EasyConvars:GetBool("body_holsters_visible_weapons") then
         for _, child in ipairs(weapon:GetTopChildren()) do
             if child:GetModelName() ~= "" then
                 local childClone = cloneWeapon(child, class, vlua.tableadd(spawnkeys, {targetname = ""}))
                 childClone:SetParent(clone, "")
             end
         end
-    end
+    -- end
 
     return clone
 end
@@ -241,7 +241,7 @@ end
 function BodyHolsters:CanStoreInSlot(slot, weapon)
     if
         (slot.storedWeapon == nil or slot.storedWeapon == weapon)
-        and weapon ~= nil and (weapon:GetClassname() ~= "hlvr_multitool" or EasyConvars:GetBool("holsters_allow_multitool"))
+        and weapon ~= nil and (weapon:GetClassname() ~= "hlvr_multitool" or EasyConvars:GetBool("body_holsters_allow_multitool"))
     then
         return true
     end
@@ -260,7 +260,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     end
 
     -- Create new clone
-    if EasyConvars:GetBool("holsters_visible_weapons") then
+    if EasyConvars:GetBool("body_holsters_visible_weapons") then
         local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
         local _, holsterEnt = getPlayerHolsterData()
         weaponClone:SetParent(holsterEnt, "")
@@ -291,8 +291,9 @@ function BodyHolsters:UnholsterSlot(slot, silent)
     local clone = GetHolsteredWeaponClone(weapon)
     if clone then
         clone:Kill()
-    else
-        Warning("Clone doesn't exist for stored weapon " ..Debug.EntStr(slot.storedWeapon).."\n")
+    -- Warn only if clones should exist
+    elseif EasyConvars:GetBool("body_holsters_visible_weapons") then
+        warn("Clone doesn't exist for stored weapon " ..Debug.EntStr(slot.storedWeapon))
     end
 
     slot.storedWeapon = nil
@@ -318,10 +319,10 @@ function BodyHolsters:UnholsterWeapon(weapon, silent)
 end
 
 Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
-    devprint("RELEASE")
+    -- devprint("RELEASE")
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
-        if weapon:GetClassname() == "hlvr_multitool" and not EasyConvars:GetBool("holsters_allow_multitool") then
+        if weapon:GetClassname() == "hlvr_multitool" and not EasyConvars:GetBool("body_holsters_allow_multitool") then
             StartSoundEventReliable("Inventory.Invalid", Player)
             return
         end
@@ -344,7 +345,7 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
 end)
 
 local inputPressCallback = function(params)
-    devprint("PRESS")
+    -- devprint("PRESS")
     local weapon = Player:GetWeapon()
     -- Make sure player isn't holding anything first
     if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
@@ -367,13 +368,13 @@ end
 Input:RegisterCallback("press", 2, holsterGrabButton, 1, inputPressCallback)
 
 -- local holsters_require_trigger_to_unholster = false
-EasyConvars:Register("holsters_require_trigger_to_unholster", "0", function (_, on)
+EasyConvars:Register("body_holsters_require_trigger_to_unholster", "0", function (on)
     on = truthy(on)
     Input:UnregisterCallback(inputPressCallback)
     Input:RegisterCallback("press", 2, on and DIGITAL_INPUT_USE or DIGITAL_INPUT_USE_GRIP, 1, inputPressCallback)
     return on
 end, "Trigger button (fire) must be pressed to unholster a weapon.", 0)
-EasyConvars:SetPersistent("holsters_require_trigger_to_unholster", true)
+EasyConvars:SetPersistent("body_holsters_require_trigger_to_unholster", true)
 
 local handWithinSlot = false
 local function playerHolsterThink()
@@ -404,7 +405,7 @@ RegisterPlayerEventCallback("vr_player_ready", function (params)
     Player:SetContextThink("playerHolsterThink", playerHolsterThink, 0)
 
     if debug and IsInToolsMode() then
-        SendToConsole("holsters_debug 1")
+        SendToConsole("body_holsters_debug 1")
     end
 
     print("Body Holsters ".. version .." initialized...")
