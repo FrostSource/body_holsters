@@ -34,35 +34,35 @@ BodyHolsters.slots =
     -- -y = right
     {
         name = "left_hip",
-        offset = Vector(-3, 7, -22),
-        radius = 9,
+        offset = Vector(-3, 9, -22),
+        radius = 7,
         storedWeapon = nil,
     },
     {
         name = "right_hip",
-        offset = Vector(-3, -7, -22),
-        radius = 9,
+        offset = Vector(-3, -9, -22),
+        radius = 7,
     },
 
     {
         name = "left_underarm",
-        offset = Vector(-3, 6, -10),
+        offset = Vector(-2, 6, -10),
         radius = 5.5,
     },
     {
         name = "right_underarm",
-        offset = Vector(-3, -6, -10),
+        offset = Vector(-2, -6, -10),
         radius = 5.5,
     },
 
     {
         name = "left_shoulder",
-        offset = Vector(-10, 5, 0),
+        offset = Vector(-9.5, 5, 0),
         radius = 10,
     },
     {
         name = "right_shoulder",
-        offset = Vector(-10, -5, 0),
+        offset = Vector(-9.5, -5, 0),
         radius = 10,
     },
 }
