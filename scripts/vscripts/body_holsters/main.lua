@@ -65,6 +65,53 @@ BodyHolsters.slots =
     },
 }
 
+Convars:RegisterCommand("holsters_slot", function (_, name, x, y, z, radius)
+    -- Printing all slots if no name given
+    if name == nil then
+        for index, slot in ipairs(BodyHolsters.slots) do
+            Msg(slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius)
+        end
+        return
+    end
+
+    local slot = BodyHolsters:GetSlot(name)
+    if slot == nil then
+        Msg("No body holster slot with name '"..name.."'")
+        return
+    end
+
+    -- Printing specific slot if no values given
+    if x == nil then
+        Msg(slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius)
+        return
+    end
+
+    -- Modifying
+
+    x = tonumber(x) or slot.offset.x
+    y = tonumber(y) or slot.offset.y
+    z = tonumber(z) or slot.offset.z
+    radius = tonumber(radius) or slot.radius
+
+    slot.offset = Vector(x, y, z)
+    slot.radius = radius
+
+    Msg("Modified " .. slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius)
+
+end, "", 0)
+
+---Get a slot table by its name.
+---@param name string
+---@return BodyHolstersSlot?
+function BodyHolsters:GetSlot(name)
+    for _, slot in ipairs(BodyHolsters.slots) do
+        if slot.name == name then
+            return slot
+        end
+    end
+    return nil
+end
+
 ---Get holstered weapon clone based on the weapon class it represents.
 ---@param weapon EntityHandle
 ---@return EntityHandle?
