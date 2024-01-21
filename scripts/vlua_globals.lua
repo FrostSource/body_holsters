@@ -1829,7 +1829,7 @@ function CBaseEntity:SetAngularVelocity(pitch, yaw, roll) end
 function CBaseEntity:SetConstraint(pos) end
 ---Store any key/value pair in this entity's dialog contexts. Value must be a string. Will last for duration (set 0 to mean 'forever').
 ---@param name string
----@param value string
+---@param value? string
 ---@param duration number
 function CBaseEntity:SetContext(name, value, duration) end
 ---Store any key/value pair in this entity's dialog contexts. Value must be a number (int or float). Will last for duration (set 0 to mean 'forever').
