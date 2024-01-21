@@ -1,7 +1,9 @@
 require "core"
 
-Convars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
-Convars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
+EasyConvars:RegisterConvar("holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
+EasyConvars:SetPersistent("holsters_visible_weapons", true)
+EasyConvars:RegisterConvar("holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
+EasyConvars:SetPersistent("holsters_allow_multitool", true)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
 
@@ -216,7 +218,7 @@ local function cloneWeapon(weapon, class, spawnkeys)
         model = weapon:GetModelName(),
         solid = "0",
         targetname = cloneName,
-        rendermode = Convars:GetBool("holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
+        rendermode = EasyConvars:GetBool("holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
         vscripts = "",
         disableshadows = "1",
     }, spawnkeys))
@@ -224,7 +226,7 @@ local function cloneWeapon(weapon, class, spawnkeys)
     clone:SetMaterialGroupMask(weapon:GetMaterialGroupMask())
 
     -- Don't need children if weapons are invisible
-    if Convars:GetBool("holsters_visible_weapons") then
+    if EasyConvars:GetBool("holsters_visible_weapons") then
         for _, child in ipairs(weapon:GetTopChildren()) do
             if child:GetModelName() ~= "" then
                 local childClone = cloneWeapon(child, class, vlua.tableadd(spawnkeys, {targetname = ""}))
@@ -239,7 +241,7 @@ end
 function BodyHolsters:CanStoreInSlot(slot, weapon)
     if
         (slot.storedWeapon == nil or slot.storedWeapon == weapon)
-        and weapon ~= nil and (weapon:GetClassname() ~= "hlvr_multitool" or Convars:GetBool("holsters_allow_multitool"))
+        and weapon ~= nil and (weapon:GetClassname() ~= "hlvr_multitool" or EasyConvars:GetBool("holsters_allow_multitool"))
     then
         return true
     end
@@ -258,7 +260,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     end
 
     -- Create new clone
-    if Convars:GetBool("holsters_visible_weapons") then
+    if EasyConvars:GetBool("holsters_visible_weapons") then
         local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
         local _, holsterEnt = getPlayerHolsterData()
         weaponClone:SetParent(holsterEnt, "")
@@ -319,7 +321,7 @@ Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, function(params)
     devprint("RELEASE")
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
-        if weapon:GetClassname() == "hlvr_multitool" and not Convars:GetBool("holsters_allow_multitool") then
+        if weapon:GetClassname() == "hlvr_multitool" and not EasyConvars:GetBool("holsters_allow_multitool") then
             StartSoundEventReliable("Inventory.Invalid", Player)
             return
         end
@@ -364,17 +366,14 @@ local inputPressCallback = function(params)
 end
 Input:RegisterCallback("press", 2, holsterGrabButton, 1, inputPressCallback)
 
-local holsters_require_trigger_to_unholster = false
-Convars:RegisterCommand("holsters_require_trigger_to_unholster", function (_, on)
-    if on == nil then
-        Msg("holsters_require_trigger_to_unholster" .. (holsters_require_trigger_to_unholster and "1" or "0"))
-        return
-    end
-
+-- local holsters_require_trigger_to_unholster = false
+EasyConvars:Register("holsters_require_trigger_to_unholster", "0", function (_, on)
     on = truthy(on)
     Input:UnregisterCallback(inputPressCallback)
     Input:RegisterCallback("press", 2, on and DIGITAL_INPUT_USE or DIGITAL_INPUT_USE_GRIP, 1, inputPressCallback)
+    return on
 end, "Trigger button (fire) must be pressed to unholster a weapon.", 0)
+EasyConvars:SetPersistent("holsters_require_trigger_to_unholster", true)
 
 local handWithinSlot = false
 local function playerHolsterThink()
