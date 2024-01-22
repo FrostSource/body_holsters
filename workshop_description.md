@@ -23,6 +23,7 @@ Your weapon switch menu remains fully functional so you can mix your play-style 
 
 If you don't know how to use the console, follow this guide: https://steamcommunity.com/sharedfiles/filedetails/?id=2040205272
 
+[hr][/hr]
 [list]
 
 [*][b]body_holsters_visible_weapons[/b]
@@ -56,6 +57,7 @@ Draws debug spheres for the holster slots and their states.
 
 [/list]
 
+[hr][/hr]
 Console commands can be set in the launch options for Half-Life: Alyx, just put a hyphen before each name and the value after, e.g. [b]-body_holsters_visible 1[/b]
 
 [h2]Source Code[/h2]
