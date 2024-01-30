@@ -42,6 +42,12 @@ Default = 0
 The use button will be required to unholster weapons instead of the grip.
 [i]This convar is persistent with your save file.[/i]
 
+[*][b]body_holsters_require_use_to_holster[/b]
+Default = 0
+The use button will be required to holster weapons instead of the grip.
+If you are a Quest user this might be required without changing any bindings.
+[i]This convar is persistent with your save file.[/i]
+
 [*][b]body_holsters_slot[/b]
 Syntax = holsters_slot <name> <x> <y> <z> <radius>
 Allows temporary modification of holster slot properties for debugging purposes, best used in conjunction with [b]holsters_debug[/b] to see positions. Any changes will revert on map reload. Leave a comment if you think you've found better slot positions.
