@@ -72,6 +72,12 @@ BodyHolsters.slots =
         offset = Vector(-6.5, -5, 0),
         radius = 10,
     },
+
+    {
+        name = "chest",
+        offset = Vector(1, 0, -11),
+        radius = 5,
+    },
 }
 
 Convars:RegisterCommand("body_holsters_slot", function (_, name, x, y, z, radius)
