@@ -18,6 +18,13 @@ BodyHolsters = {}
 BodyHolsters.version = version
 BodyHolsters.__index = BodyHolsters
 
+
+---When you look down your head origin moves forwards but body and arms stay the same place
+---This causes a perceived disparity between where the slots actually are vs where you think they should be
+---This variable artificially moves slots back based on how much the player is looking down
+---When fully looking down the slots will be moved this many units back
+BodyHolsters.cameraForwardZSlotAdjustment = 5
+
 ---@class BodyHolstersSlot
 ---@field name string # Name of the slot.
 ---@field offset Vector # Local offset from the main holster origin (usually the backpack).
@@ -140,7 +147,9 @@ local function getNearestSlots(pos)
     local slots = {}
     local holsterPos, holsterEnt = getPlayerHolsterData()
     for _, slot in ipairs(BodyHolsters.slots) do
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset)
+        local lookZ = Player:EyeAngles():Forward().z
+        local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
+        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust))
         local distance = VectorDistance(slotOrigin, pos)
         if distance <= slot.radius then
             table.insert(slots, { slot = slot, distance = distance })
@@ -173,7 +182,9 @@ local function holsterDebugThink()
     debugoverlay:Sphere(handOrigin, 0.5, 255,255,255,255,true,0)
 
     for i, slot in ipairs(BodyHolsters.slots) do
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset)
+        local lookZ = Player:EyeAngles():Forward().z
+        local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
+        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust))
         local r,g,b = 255,255,255
         local weapon = Player:GetWeapon()
         if slot.storedWeapon ~= nil then
@@ -397,6 +408,8 @@ end, "Trigger button (fire) must be pressed to unholster a weapon.", 0)
 EasyConvars:SetPersistent("body_holsters_require_trigger_to_unholster", true)
 
 local handWithinSlot = false
+---Main think function for providing haptic feedback.
+---@return number
 local function playerHolsterThink()
     -- Notify hand within slot
     local slot = getNearestSlots(getHandPosition())[1]
