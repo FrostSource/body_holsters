@@ -327,14 +327,19 @@ local inputReleaseCallback = function(params)
             return
         end
         local handOrigin = getHandPosition()
+        local notifyInvalid = false -- Plays a sound if holster is invalid
         local slots = getNearestSlots(handOrigin)
         for _, slot in ipairs(slots) do
+            if slot.storedWeapon ~= nil and slot.storedWeapon ~= weapon then
+                notifyInvalid = true
+            elseif slot.storedWeapon == nil or slot.storedWeapon == weapon then
                 -- Unholster the weapon everywhere else first
                 BodyHolsters:UnholsterWeapon(weapon, true)
                 -- Then holster into slot
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
 
                 Player.PrimaryHand:FireHapticPulse(1)
+                notifyInvalid = false
 
                 -- Remove weapon from hand
                 Player:SetWeapon("hand_use_controller")
@@ -342,7 +347,10 @@ local inputReleaseCallback = function(params)
                 devprints("Holstered", weapon:GetClassname(), weapon:GetName())
                 break
             end
+        end
 
+        if notifyInvalid then
+            StartSoundEventReliable("Inventory.Invalid", Player)
         end
     end
 end
