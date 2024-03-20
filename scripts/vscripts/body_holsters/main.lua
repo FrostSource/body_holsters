@@ -329,8 +329,11 @@ local inputReleaseCallback = function(params)
         local handOrigin = getHandPosition()
         local slots = getNearestSlots(handOrigin)
         for _, slot in ipairs(slots) do
-            if slot.storedWeapon == nil or slot.storedWeapon == weapon then
+                -- Unholster the weapon everywhere else first
+                BodyHolsters:UnholsterWeapon(weapon, true)
+                -- Then holster into slot
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
+
                 Player.PrimaryHand:FireHapticPulse(1)
 
                 -- Remove weapon from hand
