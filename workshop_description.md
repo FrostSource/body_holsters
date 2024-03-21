@@ -10,11 +10,23 @@ Body Holsters is a global addon allowing you to store your weapons directly on y
 
 [b]Holstering:[/b]
 
-With a weapon equipped in your primary hand, hold your grip button (squeeze the controller gently for Valve Index Knuckles) and move your hand to one of the six holster slots on your body until you feel a vibration in your controller, then release the grip to holster.
+With a weapon equipped in your primary hand, hold your grip button (squeeze the controller gently for Valve Index Knuckles) and move your hand to one of the seven holster slots on your body until you feel a vibration in your controller, then release the grip to holster.
 
 [b]Unholstering:[/b]
 
 With an empty primary hand, move your hand to a body slot which has previously had a weapon holstered in it, then press your grip button to unholster and equip.
+
+[b]Slots:[/b]
+
+[list]
+    [*]Left Hip
+    [*]Right Hip
+    [*]Left Underarm
+    [*]Right Underarm
+    [*]Left Shoulder
+    [*]Right Shoulder
+    [*]Chest
+[/list]
 
 [hr][/hr]
 Your weapon switch menu remains fully functional so you can mix your play-style between holsters and menus. Picking a weapon from the menu accidentally will not remove it from its body slot, but placing it into a different slot will remove it from its previous slot.
@@ -29,6 +41,11 @@ If you don't know how to use the console, follow this guide: https://steamcommun
 [*][b]body_holsters_visible_weapons[/b]
 Default = 0
 Weapons will be visibly attached to the player body when holstered. If enabled when weapons are already holstered, they will have to be reholstered to appear.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_increase_offhand_side_radius[/b]
+Default = 1
+Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.
 [i]This convar is persistent with your save file.[/i]
 
 [*][b]body_holsters_allow_multitool[/b]
@@ -57,7 +74,7 @@ If only a name is provided that slot will be listed in the console.
 
 Parameters X/Y/Z are relative to the player body near the head. Setting 0/0/0 will put the slot at that position near the head. X is forward/backwards, Y is right/left, Z is up/down.
 
-[*][b]holsters_debug[/b]
+[*][b]body_holsters_debug[/b]
 Default = 0
 Draws debug spheres for the holster slots and their states.
 

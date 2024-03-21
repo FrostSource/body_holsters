@@ -4,6 +4,8 @@ EasyConvars:RegisterConvar("body_holsters_visible_weapons", "0", "Weapons are vi
 EasyConvars:SetPersistent("body_holsters_visible_weapons", true)
 EasyConvars:RegisterConvar("body_holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
 EasyConvars:SetPersistent("body_holsters_allow_multitool", true)
+EasyConvars:RegisterConvar("body_holsters_increase_offhand_side_radius", "1", "Slots on the side of the body opposite to the primary hand are increased.", 0)
+EasyConvars:SetPersistent("body_holsters_increase_offhand_side_radius", true)
 
 Input:TrackButtons({ DIGITAL_INPUT_USE, DIGITAL_INPUT_USE_GRIP })
 
@@ -25,12 +27,17 @@ BodyHolsters.__index = BodyHolsters
 ---When fully looking down the slots will be moved this many units back
 BodyHolsters.cameraForwardZSlotAdjustment = 5
 
+---Players have less reach to the non-dominant side of the body.
+---If `body_holsters_increase_offhand_side_radius` is true then non-dominant side slots will increase there radius by this many units.
+BodyHolsters.offHandRadiusIncrease = 1.2
+
 ---@class BodyHolstersSlot
 ---@field name string # Name of the slot.
 ---@field offset Vector # Local offset from the main holster origin (usually the backpack).
 ---@field angles QAngle? # Local angles to use when parenting to the main holster object.
 ---@field radius number # Size of the slot sphere.
 ---@field storedWeapon EntityHandle? # Handle of the actual inventory weapon stored in the slot.
+---@field leftside boolean # Slot is on the left-hand side of the body.
 
 ---@type BodyHolstersSlot[]
 BodyHolsters.slots =
@@ -44,39 +51,46 @@ BodyHolsters.slots =
         offset = Vector(0, 9, -22),
         radius = 7,
         storedWeapon = nil,
+        leftside = true,
     },
     {
         name = "right_hip",
         offset = Vector(0, -9, -22),
         radius = 7,
+        leftside = false,
     },
 
     {
         name = "left_underarm",
         offset = Vector(0, 6, -10),
         radius = 5.5,
+        leftside = true,
     },
     {
         name = "right_underarm",
         offset = Vector(0, -6, -10),
         radius = 5.5,
+        leftside = false,
     },
 
     {
         name = "left_shoulder",
         offset = Vector(-6.5, 5, 0),
         radius = 10,
+        leftside = true,
     },
     {
         name = "right_shoulder",
         offset = Vector(-6.5, -5, 0),
         radius = 10,
+        leftside = false,
     },
 
     {
         name = "chest",
         offset = Vector(1, 0, -11),
         radius = 5,
+        leftside = false,
     },
 }
 
@@ -153,11 +167,20 @@ local function getNearestSlots(pos)
     local slots = {}
     local holsterPos, holsterEnt = getPlayerHolsterData()
     for _, slot in ipairs(BodyHolsters.slots) do
+
         local lookZ = Player:EyeAngles():Forward().z
         local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
         local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust))
+
         local distance = VectorDistance(slotOrigin, pos)
-        if distance <= slot.radius then
+
+        -- Dynamic radius
+        local radius = slot.radius
+        if EasyConvars:GetBool("body_holsters_increase_offhand_side_radius") and (slot.leftside ~= Player.IsLeftHanded) then
+            radius = radius + BodyHolsters.offHandRadiusIncrease
+        end
+
+        if distance <= radius then
             table.insert(slots, { slot = slot, distance = distance })
         end
     end
@@ -193,8 +216,12 @@ local function holsterDebugThink()
         local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust))
         local r,g,b = 255,255,255
         local weapon = Player:GetWeapon()
+        local radius = slot.radius
+        if EasyConvars:GetBool("body_holsters_increase_offhand_side_radius") and (slot.leftside ~= Player.IsLeftHanded) then
+            radius = radius + BodyHolsters.offHandRadiusIncrease
+        end
         if slot.storedWeapon ~= nil then
-            if weapon == nil and Player.PrimaryHand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= slot.radius then
+            if weapon == nil and Player.PrimaryHand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= radius then
                 -- Slot full and can be grabbed
                 r,g,b = 0,0,255 --blue
             else
@@ -203,11 +230,11 @@ local function holsterDebugThink()
             end
         else
             -- Slot empty and hand has weapon
-            if weapon ~= nil and VectorDistance(slotOrigin, getHandPosition()) <= slot.radius then
+            if weapon ~= nil and VectorDistance(slotOrigin, getHandPosition()) <= radius then
                 r,g,b = 0,255,0 --green
             end
         end
-        debugoverlay:Sphere(slotOrigin, slot.radius, r, g, b, 255, false, 0)
+        debugoverlay:Sphere(slotOrigin, radius, r, g, b, 255, false, 0)
         debugoverlay:Text(slotOrigin, 0, slot.name, 0, 255, 255, 255, 255, 0)
     end
 
