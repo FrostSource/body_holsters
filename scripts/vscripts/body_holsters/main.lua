@@ -13,7 +13,7 @@ local holsterGrabButton = DIGITAL_INPUT_USE_GRIP
 
 local cloneName = "__weapon_clone"
 
-local version = "v0.1.1"
+local version = "v0.2.0"
 
 ---@class BodyHolsters
 BodyHolsters = {}
