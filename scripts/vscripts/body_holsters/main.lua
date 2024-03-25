@@ -419,7 +419,19 @@ local inputPressCallback = function(params)
         for _, slot in ipairs(slots) do
             if slot.storedWeapon ~= nil then
 
-                Player:SetWeapon(slot.storedWeapon)
+
+                local coughpose = Player.HMDAvatar:GetFirstChildWithClassname("prop_handpose")
+                if coughpose then
+                    coughpose:EntFire("Disable")
+                    local stored = slot.storedWeapon
+                    Player:Delay(function()
+                        Player:SetWeapon(stored)
+                        coughpose:Delay(function() coughpose:EntFire("Enable") end, 0.2)
+                    end, 0.1)
+                else
+                    Player:SetWeapon(slot.storedWeapon)
+                end
+
 
                 devprints("Unholstering", Debug.EntStr(slot.storedWeapon))
                 BodyHolsters:UnholsterSlot(slot, false)
