@@ -1,1 +1,1 @@
-require "body_holsters.main"
+require "body_holsters.init"

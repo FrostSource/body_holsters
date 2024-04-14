@@ -1,4 +1,4 @@
-require "core"
+
 
 EasyConvars:RegisterConvar("body_holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
 EasyConvars:SetPersistent("body_holsters_visible_weapons", true)
