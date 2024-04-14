@@ -400,13 +400,13 @@ local inputReleaseCallback = function(params)
 end
 Input:RegisterCallback("release", 2, DIGITAL_INPUT_USE_GRIP, 1, inputReleaseCallback)
 
-EasyConvars:Register("body_holsters_require_use_to_holster", "0", function (on)
+EasyConvars:Register("body_holsters_require_trigger_to_holster", "0", function (on)
     on = truthy(on)
     Input:UnregisterCallback(inputReleaseCallback)
     Input:RegisterCallback("release", 2, on and DIGITAL_INPUT_USE or DIGITAL_INPUT_USE_GRIP, 1, inputReleaseCallback)
     return on
 end, "Use button must be pressed to holster a weapon.", 0)
-EasyConvars:SetPersistent("body_holsters_require_trigger_to_unholster", true)
+EasyConvars:SetPersistent("body_holsters_require_trigger_to_holster", true)
 
 local inputPressCallback = function(params)
     -- devprint("PRESS")
