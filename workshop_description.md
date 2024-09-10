@@ -40,7 +40,7 @@ If you don't know how to use the console, follow this guide: https://steamcommun
 
 [*][b]body_holsters_visible_weapons[/b]
 Default = 0
-Weapons will be visibly attached to the player body when holstered. If enabled when weapons are already holstered, they will have to be reholstered to appear.
+Weapons will be visibly attached to the player body when holstered. If enabled when weapons are already holstered, they will need to be reholstered to appear.
 [i]This convar is persistent with your save file.[/i]
 
 [*][b]body_holsters_increase_offhand_side_radius[/b]
@@ -54,15 +54,34 @@ Multitool is allowed to be holstered.
 [i]This convar is persistent with your save file.[/i]
 [b]See [i]Known Issues[/i] below for important information about this![/b]
 
-[*][b]body_holsters_require_trigger_to_unholster[/b]
-Default = 0
-The use button will be required to unholster weapons instead of the grip.
+[*][b]body_holsters_unholster_grip_amount[/b]
+Default (Knuckles) = 0.5
+Default (Other)    = 1.0
+The [0-1] amount you must grip your controller to unholster a weapon.
+On the Valve Index Knuckles this is a different value by default because it uses the squeeze mechanic instead of the hand curl.
+For controllers with a grip button this is the just the amount that the button must be pressed.
 [i]This convar is persistent with your save file.[/i]
 
-[*][b]body_holsters_require_use_to_holster[/b]
+[*][b]body_holsters_holster_ungrip_amount[/b]
+Default = 0.1
+The [0-1] amount you must ungrip your controller to holster a weapon.
+For controllers with a grip button this is the just the amount that the button must be unpressed.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_require_trigger_to_unholster[/b]
 Default = 0
-The use button will be required to holster weapons instead of the grip.
-If you are a Quest user this might be required without changing any bindings.
+The trigger/shoot button will be required to unholster weapons instead of the grip.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_knuckles_use_squeeze[/b]
+Default = 1
+Valve Index Knuckles controllers will use the squeeze mechanic instead of the hand curl to unholster weapons.
+Different values for `body_holsters_unholster_grip_amount` should be tested to find a grip amount you're happy with.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_use_procedural_angles[/b]
+Default = 0
+Visible weapons will use the current angle of the weapon when holstering, otherwise they will use a default angle.
 [i]This convar is persistent with your save file.[/i]
 
 [*][b]body_holsters_slot[/b]
@@ -81,13 +100,18 @@ Draws debug spheres for the holster slots and their states.
 [/list]
 
 [hr][/hr]
-Console commands can be set in the launch options for Half-Life: Alyx, just put a hyphen before each name and the value after, e.g. [b]-body_holsters_visible 1[/b]
+Console commands can be set in the [url=https://help.steampowered.com/faqs/view/7D01-D2DD-D75E-2955]launch options[/url] for Half-Life: Alyx, just put a hyphen before each name and the value after, e.g. [b]-body_holsters_visible 1[/b]
+They can also be added to your [b]Half-Life Alyx\game\hlvr\cfg\skill.cfg[/b] file, one per line without the hyphen, e.g. [b]body_holsters_visible 1[/b]
 
 [h2]Source Code[/h2]
 
 GitHub: https://github.com/FrostSource/body_holsters
 
 [h2]Known Issues[/h2]
+
+Ammo displays on visible holstered weapons will show incorrect amount of ammo. Unfortunately I have not found a way to get the current ammo inside a weapon.
+
+Trying to grab a weapon near the face while wearing a mask or respirator will cause the player to accidentally remove the worn item instead of the weapon. Unfortunately I have not found a way to get around this.
 
 Due to the way Half-Life: Alyx works, the multitool will fail to function correctly if equipped by some means other than the weapon selection menu. The multitool is not allowed to be holstered by default for this reason.
 
