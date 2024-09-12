@@ -41,6 +41,9 @@ EasyConvars:SetPersistent("body_holsters_knuckles_use_squeeze", true)
 EasyConvars:RegisterConvar("body_holsters_use_procedural_angles", "0", "Visible weapons will use the angle of the weapon when holstered.", 0)
 EasyConvars:SetPersistent("body_holsters_use_procedural_angles", true)
 
+require "alyxlib.controls.input"
+Input.AutoStart = true
+
 local cloneName = "__weapon_clone"
 
 local version = "v1.0.0"
