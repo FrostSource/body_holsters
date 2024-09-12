@@ -1,2 +1,2 @@
--- Main workshop addon
+-- Test workshop addon
 require "body_holsters.init"
