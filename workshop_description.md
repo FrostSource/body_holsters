@@ -2,7 +2,7 @@
 
 Body Holsters is a global addon allowing you to store your weapons directly on your body instead of using the standard weapon selection menu.
 
-[i]This addon is compatible with Scalable Init Support but does not require it.[/i]
+[i]This addon require AlyxLib to work.[/i]
 
 [img]https://steamuserimages-a.akamaihd.net/ugc/2312102971541192814/6C973CA6790B85B47D70B39F38E0839D42C52448/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false[/img]
 
@@ -122,3 +122,9 @@ Holstering can be buggy when the head is mismatched from the real life body (loo
 If a map allows the player to have the same custom weapon in more than one weapon slot, holstering both might cause issues.
 
 [b]body_holsters_require_trigger_to_unholster[/b] will cause rapidfire weapons to shoot if the trigger is held too long after unholstering.
+
+[h2]Getting Help[/h2]
+
+Please feel free to reach out either by commenting below or messaging me on the Discord server!
+
+[url=https://discord.gg/42SC3Wyjv4][img]https://steamuserimages-a.akamaihd.net/ugc/2397692528302959470/036A75FE4B2E8CD2224F8B62E7CEBEE649493C40/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false[/img][/url]
