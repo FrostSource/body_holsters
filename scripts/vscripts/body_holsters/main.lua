@@ -514,7 +514,7 @@ local function playerHolsterThink()
         if handWithinSlot == false then
             handWithinSlot = true
             Player.PrimaryHand:FireHapticPulse(1)
-            if slot.storedWeapon then
+            if slot.storedWeapon and Player.PrimaryHand.ItemHeld == nil then
                 if slot.disableBackpack then
                     BodyHolsters:DisableBackpack()
                 end
