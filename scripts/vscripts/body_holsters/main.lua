@@ -490,10 +490,8 @@ local inputUnholsterID
 function BodyHolsters:UpdateControllerInputs()
     Input:StopListening(inputUnholsterID)
     if EasyConvars:GetBool("body_holsters_require_trigger_to_unholster") then
-        Input:TrackButton(DIGITAL_INPUT_FIRE)
         inputUnholsterID = Input:ListenToButton("press", 2, DIGITAL_INPUT_FIRE, 1, inputUnholsterCallback)
     else
-        Input:StopTrackingButton(DIGITAL_INPUT_FIRE)
         local analogAction = vlua.select(EasyConvars:GetBool("body_holsters_knuckles_use_squeeze"), ANALOG_INPUT_SQUEEZE_XEN_GRENADE, ANALOG_INPUT_HAND_CURL)
         inputUnholsterID = Input:ListenToAnalog("up", 2, analogAction, EasyConvars:GetFloat("body_holsters_unholster_grip_amount"), inputUnholsterCallback)
     end
