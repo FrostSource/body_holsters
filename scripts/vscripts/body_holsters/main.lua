@@ -558,7 +558,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     Player:SaveEntity("BodyHolster_"..slot.name, weapon, true)
 
     if not silent then
-        StartSoundEventReliable("body_holsters.holster", Player)
+        StartSoundEventFromPositionReliable("body_holsters.holster", Player.PrimaryHand:GetPalmPosition())
     end
 end
 
@@ -584,7 +584,7 @@ function BodyHolsters:UnholsterSlot(slot, silent)
     Player:SaveEntity("BodyHolster_"..slot.name, nil)
 
     if not silent then
-        StartSoundEventReliable("body_holsters.unholster", Player)
+        StartSoundEventFromPositionReliable("body_holsters.unholster", Player.PrimaryHand:GetPalmPosition())
     end
     return true
 end
