@@ -701,6 +701,8 @@ local handWithinSlot = false
 ---Main think function for providing haptic feedback.
 ---@return number
 local function playerHolsterThink()
+    lastThinkTime = Time()
+
     -- Notify hand within slot
     local slot = getNearestSlots(getHandPosition())[1]
     if slot ~= nil
@@ -743,10 +745,11 @@ end
 
 function BodyHolsters:EnableBackpack()
     if equipEnableBackpack and equipEnableBackpackWrist and Player:GetBackpack() then
+        -- Delay is required to stop grabbing magazine at the same time
         if Player:HasItemHolder() then
-            equipEnableBackpackWrist:EntFire("EquipNow")
+            equipEnableBackpackWrist:EntFire("EquipNow", nil, 0.1)
         else
-            equipEnableBackpack:EntFire("EquipNow")
+            equipEnableBackpack:EntFire("EquipNow", nil, 0.1)
         end
     end
 end
@@ -787,7 +790,7 @@ ListenToPlayerEvent("vr_player_ready", function (params)
 
     Player:SetContextThink("playerHolsterThink", playerHolsterThink, 0)
 
-    if debug and IsInToolsMode() then
+    if debug and IsInToolsMode() and Convars:GetInt("developer") > 1 then
         SendToConsole("body_holsters_debug 1")
     end
 
