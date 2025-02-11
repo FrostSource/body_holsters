@@ -271,7 +271,7 @@ BodyHolsters.slots =
     -- -y = right
     {
         name = "left_hip",
-        offset = Vector(0, 9, -23),
+        offset = Vector(0, 9, -26),
         angles = QAngle(90, 0, 0),
         radius = 7,
         storedWeapon = nil,
@@ -279,7 +279,7 @@ BodyHolsters.slots =
     },
     {
         name = "right_hip",
-        offset = Vector(0, -9, -23),
+        offset = Vector(0, -9, -26),
         angles = QAngle(90, 0, 0),
         radius = 7,
         leftside = false,
@@ -319,7 +319,7 @@ BodyHolsters.slots =
 
     {
         name = "chest",
-        offset = Vector(1, 0, -11),
+        offset = Vector(1, 0, -12),
         angles = QAngle(35, 90, 0),
         radius = 5,
         leftside = false,

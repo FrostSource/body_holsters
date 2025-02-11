@@ -30,6 +30,8 @@ Added default buttons for the Vive controller.
 
 Added a new diagnostic function using AlyxLib — use [b]alyxlib_diagnose body_holsters[/b] to check for any issues.
 
+Adjusted slot positions to be less finicky.
+
 Update 6
 
 This addon has been completely overhauled to use the new AlyxLib scripting system. It requires the AlyxLib addon to be downloaded and enabled.
