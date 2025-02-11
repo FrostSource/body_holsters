@@ -8,15 +8,19 @@ Body Holsters is a global addon allowing you to store your weapons directly on y
 
 [h2]How To Use[/h2]
 
-[b]Holstering:[/b]
+[h3]Holstering:[/h3]
 
-With a weapon equipped in your primary hand, hold your grip button (squeeze the controller gently for Valve Index Knuckles) and move your hand to one of the seven holster slots on your body until you feel a vibration in your controller, then release the grip to holster.
+[b]For most controllers:[/b] With a weapon equipped in your primary hand, hold your grip button and move your hand to one of the seven holster slots on your body until you feel a vibration in your controller, then release the grip to holster.
 
-[b]Unholstering:[/b]
+[b]For HTC Vive controllers:[/b] With a weapon equipped in your primary hand, move your hand to one of the seven holster slots on your body, then press the slide release button to holster.
+
+[h3]Unholstering:[/h3]
 
 With an empty primary hand, move your hand to a body slot which has previously had a weapon holstered in it, then press your grip button to unholster and equip.
 
-[b]Slots:[/b]
+Buttons can be changed using console commands. Please see the [url=]Using Custom Buttons[/url] guide for more info.
+
+[h3]Slots:[/h3]
 
 [list]
     [*]Left Hip
@@ -32,6 +36,8 @@ With an empty primary hand, move your hand to a body slot which has previously h
 Your weapon switch menu remains fully functional so you can mix your play-style between holsters and menus. Picking a weapon from the menu accidentally will not remove it from its body slot, but placing it into a different slot will remove it from its previous slot.
 
 [h2]Console Commands[/h2]
+
+Console commands allow you to customize and tweak the addon while playing. They are not required to use the addon, and for most users the default values will provide a good experience. 
 
 If you don't know how to use the console, follow this guide: https://steamcommunity.com/sharedfiles/filedetails/?id=2040205272
 
@@ -54,30 +60,55 @@ Multitool is allowed to be holstered.
 [i]This convar is persistent with your save file.[/i]
 [b]See [i]Known Issues[/i] below for important information about this![/b]
 
+[*][b]body_holsters_holster_is_analog[/b]
+Default (Vive)  = 0
+Default (Other) = 1
+Whether analog actions should be used instead of digital actions for holstering.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_holster_action[/b]
+Default (Vive)  = 11 (Slide Release)
+Default (Other) = 0  (Hand Curl)
+The digital or analog action for holstering. See the [url=]Using Custom Buttons[/url] guide for more info.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_unholster_is_analog[/b]
+Default = 1
+Whether analog actions should be used instead of digital actions for unholstering.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_unholster_action[/b]
+Default (Knuckles) = 2 (Squeeze Xen Grenade)
+Default (Other)    = 0 (Hand Curl)
+The digital or analog action for unholstering. See the [url=]Using Custom Buttons[/url] guide for more info.
+[i]This convar is persistent with your save file.[/i]
+
 [*][b]body_holsters_unholster_grip_amount[/b]
 Default (Knuckles) = 0.5
 Default (Other)    = 1.0
-The [0-1] amount you must grip your controller to unholster a weapon.
-On the Valve Index Knuckles this is a different value by default because it uses the squeeze mechanic instead of the hand curl.
+[0-1] value for how much the controller must be gripped to unholster a weapon (only applicable if body_holsters_unholster_is_analog is 1)
+On the Valve Index Knuckles this is a different value by default because it uses the squeeze mechanic instead of the hand curl by default.
 For controllers with a grip button this is the just the amount that the button must be pressed.
 [i]This convar is persistent with your save file.[/i]
 
 [*][b]body_holsters_holster_ungrip_amount[/b]
 Default = 0.1
-The [0-1] amount you must ungrip your controller to holster a weapon.
+[0-1] value for how much the controller must be ungripped to holster a weapon (only applicable if body_holsters_holster_is_analog is 1)
 For controllers with a grip button this is the just the amount that the button must be unpressed.
 [i]This convar is persistent with your save file.[/i]
 
-[*][b]body_holsters_require_trigger_to_unholster[/b]
+[/b]This convar has been removed now that actions can be set manually, see 'body_holsters_unholster_is_analog' and 'body_holsters_unholster_action'.[/b]
+[strike][*][b]body_holsters_require_trigger_to_unholster[/b]
 Default = 0
 The trigger/shoot button will be required to unholster weapons instead of the grip.
-[i]This convar is persistent with your save file.[/i]
+[i]This convar is persistent with your save file.[/i][/strike]
 
-[*][b]body_holsters_knuckles_use_squeeze[/b]
+[b]This convar has been removed now that actions can be set manually, see 'body_holsters_unholster_is_analog' and 'body_holsters_unholster_action'.[/b]
+[strike][*][b]body_holsters_knuckles_use_squeeze[/b]
 Default = 1
 Valve Index Knuckles controllers will use the squeeze mechanic instead of the hand curl to unholster weapons.
-Different values for `body_holsters_unholster_grip_amount` should be tested to find a grip amount you're happy with.
-[i]This convar is persistent with your save file.[/i]
+Different values for 'body_holsters_unholster_grip_amount' should be tested to find a grip amount you're happy with.
+[i]This convar is persistent with your save file.[/i][/strike]
 
 [*][b]body_holsters_use_procedural_angles[/b]
 Default = 0
@@ -125,6 +156,6 @@ If a map allows the player to have the same custom weapon in more than one weapo
 
 [h2]Getting Help[/h2]
 
-Please feel free to reach out either by commenting below or messaging me on the Discord server!
+Please feel free to reach out either by commenting below or on the Discord server!
 
 [url=https://discord.gg/42SC3Wyjv4][img]https://steamuserimages-a.akamaihd.net/ugc/2397692528302959470/036A75FE4B2E8CD2224F8B62E7CEBEE649493C40/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false[/img][/url]
