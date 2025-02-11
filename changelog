@@ -1,0 +1,97 @@
+Update 7
+
+Added new convars to customize the analog and digital actions for holstering and unholstering:
+
+[list]
+[*]body_holsters_holster_is_analog
+[*]body_holsters_holster_action
+[*]body_holsters_unholster_is_analog
+[*]body_holsters_unholster_action
+[/list]
+
+Please see this guide for more info: 
+
+Removed two convars that are no longer used due to the new customize convars:
+
+[list]
+[*]body_holsters_require_trigger_to_unholster
+[*]body_holsters_knuckles_use_squeeze
+[/list]
+
+Updated sounds to use inventory mixgroup so they should match the environment and be more immersive.
+
+Fixed backpack being disabled when trying to store ammo while a shoulder slot is holstered.
+
+Fixed magazine sometimes coming out when unholstering shoulder weapon.
+
+Fixed some controllers using the grenade button instead of the grip by default (hopefully).
+
+Added default buttons for the Vive controller.
+
+Added a new diagnostic function using AlyxLib — use [b]alyxlib_diagnose body_holsters[/b] to check for any issues.
+
+Update 6
+
+This addon has been completely overhauled to use the new AlyxLib scripting system. It requires the AlyxLib addon to be downloaded and enabled.
+
+Completely reworked the inputs for holstering/unholstering. This should make things much more consistent across different VR headsets and allows for greater customization.
+
+Added default angles for all slots so the weapons appear to sit more naturally.
+
+Removed 'body_holsters_require_use_to_holster' convar due to the way the new system works.
+
+Fixed a hand model appearing with the holstered weapon sometimes.
+
+Added 'body_holsters_unholster_grip_amount' convar to change the amount your hand must be gripped in order to unholster a weapon.
+
+Added 'body_holsters_holster_ungrip_amount' convar to change the amount your hand must be ungripped in order to holster a weapon.
+
+Added 'body_holsters_knuckles_use_squeeze' convar for Valve Index users to choose whether they want to use squeezing or traditional grip.
+
+Added 'body_holsters_use_procedural_angles' convar to allow user defined angles when holstering a weapon.
+
+
+Known Issues:
+
+Ammo displays on visible holstered weapons will show incorrect amount of ammo. Unfortunately I have not found a way to get the current ammo inside a weapon.
+
+Trying to grab a weapon near the face while wearing a mask or respirator will cause the player to accidentally remove the worn item instead of the weapon. Unfortunately I have not found a way to get around this.
+
+
+[b]The transition to the new AlyxLib API is a complex update so please bear with me during this time. I do this as a hobby and cannot always dedicate my time to fixes.[/b]
+
+Update 5
+
+Attempted fix for the cough handpose causing hand to stick to face after holstering.
+
+Added Quality of Life tag.
+
+Update 4
+
+Fixed weapons not being unholstered from previous body slot if holstered into a new slot after equipping from the inventory menu.
+
+Added invalid sound when trying to holster in occupied slot.
+
+Added dynamic slot adjustment based on head pitch.
+When you look down your head origin moves forwards but body and arms stay in the same place.
+This causes a perceived disparity between where the slots actually are versus where you think they should be.
+
+Added a new chest slot, right at the center of your chest.
+
+Added new convar "body_holsters_increase_offhand_side_radius"
+Players have less reach to the non-dominant side of the body.
+If "body_holsters_increase_offhand_side_radius" is true then non-dominant side slots will increase their radius slightly to accommodate.
+
+Update 3
+
+Further fix for Scalable Init Support.
+
+Due to the issue only being present in workshop downloads, updates will continue as I narrow down the exact cause.
+
+Update 2
+
+Fixed script discrepancy which stopped Scalable Init Support from working. The Resin Watch mod now works alongside Body Holsters.
+
+Update 1
+
+Added new convar to require use release for holstering. This is an initial attempt at fixing the Quest controller bug.
