@@ -243,9 +243,9 @@ RegisterAlyxLibDiagnostic(addonID, function ()
     return true
 end)
 
----When you look down your head origin moves forwards but body and arms stay the same place
+---When you look down your head origin moves forward and down but body and arms stay the same place
 ---This causes a perceived disparity between where the slots actually are vs where you think they should be
----This variable artificially moves slots back based on how much the player is looking down
+---This variable artificially moves slots back and up based on how much the player is looking down
 ---When fully looking down the slots will be moved this many units back
 BodyHolsters.cameraForwardZSlotAdjustment = 5
 
@@ -403,7 +403,7 @@ local function getNearestSlots(pos)
         local lookZ = Player:EyeAngles():Forward().z
         local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
                                                                     ---@TODO PUT adjust BACK IN VECTOR BEFORE RELEASE, SAME IN DEBUG FUNCTION
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(0))--adjust
+        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust, 0, -adjust))
 
         local distance = VectorDistance(slotOrigin, pos)
 
@@ -446,7 +446,7 @@ local function holsterDebugThink()
     for i, slot in ipairs(BodyHolsters.slots) do
         local lookZ = Player:EyeAngles():Forward().z
         local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(0))--adjust
+        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust, 0, -adjust))
         local r,g,b = 255,255,255
         local weapon = Player:GetWeapon()
         local radius = slot.radius
