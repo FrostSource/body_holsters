@@ -18,7 +18,7 @@ Body Holsters is a global addon allowing you to store your weapons directly on y
 
 With an empty primary hand, move your hand to a body slot which has previously had a weapon holstered in it, then press your grip button to unholster and equip.
 
-Buttons can be changed using console commands. Please see the [url=]Using Custom Buttons[/url] guide for more info.
+Buttons can be changed using console commands. Please see the [url=https://steamcommunity.com/workshop/filedetails/discussion/3144612716/732500995379036779/]Custom Input Actions Guide[/url] for more info.
 
 [h3]Slots:[/h3]
 
@@ -41,94 +41,7 @@ Console commands allow you to customize and tweak the addon while playing. They 
 
 If you don't know how to use the console, follow this guide: https://steamcommunity.com/sharedfiles/filedetails/?id=2040205272
 
-[hr][/hr]
-[list]
-
-[*][b]body_holsters_visible_weapons[/b]
-Default = 0
-Weapons will be visibly attached to the player body when holstered. If enabled when weapons are already holstered, they will need to be reholstered to appear.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_increase_offhand_side_radius[/b]
-Default = 1
-Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_allow_multitool[/b]
-Default = 0
-Multitool is allowed to be holstered.
-[i]This convar is persistent with your save file.[/i]
-[b]See [i]Known Issues[/i] below for important information about this![/b]
-
-[*][b]body_holsters_holster_is_analog[/b]
-Default (Vive)  = 0
-Default (Other) = 1
-Whether analog actions should be used instead of digital actions for holstering.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_holster_action[/b]
-Default (Vive)  = 11 (Slide Release)
-Default (Other) = 0  (Hand Curl)
-The digital or analog action for holstering. See the [url=]Using Custom Buttons[/url] guide for more info.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_unholster_is_analog[/b]
-Default = 1
-Whether analog actions should be used instead of digital actions for unholstering.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_unholster_action[/b]
-Default (Knuckles) = 2 (Squeeze Xen Grenade)
-Default (Other)    = 0 (Hand Curl)
-The digital or analog action for unholstering. See the [url=]Using Custom Buttons[/url] guide for more info.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_unholster_grip_amount[/b]
-Default (Knuckles) = 0.5
-Default (Other)    = 1.0
-[0-1] value for how much the controller must be gripped to unholster a weapon (only applicable if body_holsters_unholster_is_analog is 1)
-On the Valve Index Knuckles this is a different value by default because it uses the squeeze mechanic instead of the hand curl by default.
-For controllers with a grip button this is the just the amount that the button must be pressed.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_holster_ungrip_amount[/b]
-Default = 0.1
-[0-1] value for how much the controller must be ungripped to holster a weapon (only applicable if body_holsters_holster_is_analog is 1)
-For controllers with a grip button this is the just the amount that the button must be unpressed.
-[i]This convar is persistent with your save file.[/i]
-
-[/b]This convar has been removed now that actions can be set manually, see 'body_holsters_unholster_is_analog' and 'body_holsters_unholster_action'.[/b]
-[strike][*][b]body_holsters_require_trigger_to_unholster[/b]
-Default = 0
-The trigger/shoot button will be required to unholster weapons instead of the grip.
-[i]This convar is persistent with your save file.[/i][/strike]
-
-[b]This convar has been removed now that actions can be set manually, see 'body_holsters_unholster_is_analog' and 'body_holsters_unholster_action'.[/b]
-[strike][*][b]body_holsters_knuckles_use_squeeze[/b]
-Default = 1
-Valve Index Knuckles controllers will use the squeeze mechanic instead of the hand curl to unholster weapons.
-Different values for 'body_holsters_unholster_grip_amount' should be tested to find a grip amount you're happy with.
-[i]This convar is persistent with your save file.[/i][/strike]
-
-[*][b]body_holsters_use_procedural_angles[/b]
-Default = 0
-Visible weapons will use the current angle of the weapon when holstering, otherwise they will use a default angle.
-[i]This convar is persistent with your save file.[/i]
-
-[*][b]body_holsters_slot[/b]
-Syntax = holsters_slot <name> <x> <y> <z> <radius>
-Allows temporary modification of holster slot properties for debugging purposes, best used in conjunction with [b]holsters_debug[/b] to see positions. Any changes will revert on map reload. Leave a comment if you think you've found better slot positions.
-
-If command is entered without any parameters all slots will be listed in the console.
-If only a name is provided that slot will be listed in the console.
-
-Parameters X/Y/Z are relative to the player body near the head. Setting 0/0/0 will put the slot at that position near the head. X is forward/backwards, Y is right/left, Z is up/down.
-
-[*][b]body_holsters_debug[/b]
-Default = 0
-Draws debug spheres for the holster slots and their states.
-
-[/list]
+See the list of console commands here: https://steamcommunity.com/workshop/filedetails/discussion/3144612716/732500995379037046/
 
 [hr][/hr]
 Console commands can be set in the [url=https://help.steampowered.com/faqs/view/7D01-D2DD-D75E-2955]launch options[/url] for Half-Life: Alyx, just put a hyphen before each name and the value after, e.g. [b]-body_holsters_visible 1[/b]
