@@ -133,7 +133,6 @@ EasyConvars:SetPersistent("body_holsters_unholster_action", true)
 EasyConvars:SetPostInitializer(function()
 
     local controllerType = getVRControllerType()
-    print("CONTROLLER TYPE: " .. controllerType, Input:GetControllerTypeDescription(controllerType))
 
     -- Automatic holster actions
     if not EasyConvars:WasChangedByUser("body_holsters_holster_action") then
@@ -679,20 +678,16 @@ local inputUnholsterID
 function BodyHolsters:UpdateControllerInputs()
     Input:StopListening(inputUnholsterID)
     if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-        print("Unholster analog")
         inputUnholsterID = Input:ListenToAnalog("up", 2, EasyConvars:GetInt("body_holsters_unholster_action"), EasyConvars:GetFloat("body_holsters_unholster_grip_amount"), inputUnholsterCallback)
     else
-        print("Unholster button")
         inputUnholsterID = Input:ListenToButton("press", 2, EasyConvars:GetInt("body_holsters_unholster_action"), 1, inputUnholsterCallback)
     end
 
     Input:StopListening(inputHolsterID)
     -- inputHolsterID = Input:ListenToAnalog("down", 2, ANALOG_INPUT_HAND_CURL, EasyConvars:GetFloat("body_holsters_holster_ungrip_amount"), inputHolsterCallback)
     if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-        print("Holster analog")
         inputHolsterID = Input:ListenToAnalog("down", 2, EasyConvars:GetInt("body_holsters_holster_action"), EasyConvars:GetFloat("body_holsters_holster_ungrip_amount"), inputHolsterCallback)
     else
-        print("Holster button")
         inputHolsterID = Input:ListenToButton("press", 2, EasyConvars:GetInt("body_holsters_holster_action"), 1, inputHolsterCallback)
     end
 end
