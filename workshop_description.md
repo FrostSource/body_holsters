@@ -2,7 +2,7 @@
 
 Body Holsters is a global addon allowing you to store your weapons directly on your body instead of using the standard weapon selection menu.
 
-[i]This addon require AlyxLib to work.[/i]
+[i]This addon require [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3329679071]AlyxLib[/url] to work.[/i]
 
 [img]https://steamuserimages-a.akamaihd.net/ugc/2312102971541192814/6C973CA6790B85B47D70B39F38E0839D42C52448/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false[/img]
 
