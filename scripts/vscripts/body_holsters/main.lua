@@ -243,75 +243,95 @@ BodyHolsters.offHandRadiusIncrease = 1.2
 ---@class BodyHolstersSlot
 ---@field name string # Name of the slot.
 ---@field offset Vector # Local offset from the main holster origin (usually the backpack).
----@field angles QAngle? # Local angles to use when parenting to the main holster object.
+---@field angles? QAngle # Local angles to use when parenting to the main holster object.
 ---@field radius number # Size of the slot sphere.
----@field storedWeapon EntityHandle? # Handle of the actual inventory weapon stored in the slot.
+---@field storedWeapon? EntityHandle # Handle of the actual inventory weapon stored in the slot.
 ---@field leftside boolean # Slot is on the left-hand side of the body.
----@field disableBackpack boolean? # If the backpack should be disabled when hand is inside this slot.
+---@field attachHandle? boolean # If true, weapon handle will align with the slot, otherwise center will be used.
+---@field disableBackpack? boolean # If the backpack should be disabled when hand is inside this slot.
 
----@type BodyHolstersSlot[]
-BodyHolsters.slots =
-{
+local function leftHanded(a, b)
+    print(Convars:GetBool("hlvr_left_hand_primary") and "a" or "b")
+    return Convars:GetBool("hlvr_left_hand_primary") and a or b
+end
+
+local rebuildSlots = function()
+return {
     -- +x = forward
     -- -x = backward
-    -- +y = left
-    -- -y = right
+    -- +y = right
+    -- -y = left
     {
         name = "left_hip",
-        offset = Vector(0, 9, -26),
-        angles = QAngle(90, 0, 0),
+        offset = leftHanded(Vector(-4, 10, -25), Vector(-2, 6, -21)),
+        angles = leftHanded(QAngle(90, 0, 0), QAngle(55, 135, 0)),
         radius = 7,
         storedWeapon = nil,
         leftside = true,
+        attachHandle = true,
     },
     {
         name = "right_hip",
-        offset = Vector(0, -9, -26),
-        angles = QAngle(90, 0, 0),
+        offset = leftHanded(Vector(-2, -6, -21), Vector(-4, -10, -25)),
+        angles = leftHanded(QAngle(55, 225, 0), QAngle(90, 0, 0)),
         radius = 7,
         leftside = false,
+        attachHandle = true,
     },
 
     {
         name = "left_underarm",
-        offset = Vector(0, 6, -12),
+        offset = Vector(-1.5, 8, -12),
         angles = QAngle(35, 180, 0),
         radius = 5.5,
         leftside = true,
+        attachHandle = true,
     },
     {
         name = "right_underarm",
-        offset = Vector(0, -6, -12),
+        offset = Vector(-1.5, -8, -12),
         angles = QAngle(35, 180, 0),
         radius = 5.5,
         leftside = false,
+        attachHandle = true,
     },
 
     {
         name = "left_shoulder",
-        offset = Vector(-6.5, 5, -2),
+        offset = Vector(-8.2, 5, -2),
         angles = QAngle(90, 90, 0),
         radius = 10,
         leftside = true,
         disableBackpack = true,
+        attachHandle = true,
     },
     {
         name = "right_shoulder",
-        offset = Vector(-6.5, -5, -2),
+        offset = Vector(-8.2, -5, -2),
         angles = QAngle(90, -90, 0),
         radius = 10,
         leftside = false,
         disableBackpack = true,
+        attachHandle = true,
     },
 
     {
         name = "chest",
-        offset = Vector(1, 0, -12),
-        angles = QAngle(35, 90, 0),
-        radius = 5,
+        offset = Vector(1.5, 0, -12),
+        angles = leftHanded(QAngle(35, -90, 0), QAngle(35, 90, 0)),
+        radius = 4.5,
         leftside = false,
+        attachHandle = false,
     },
 }
+end
+
+---@type BodyHolstersSlot[]
+BodyHolsters.slots = rebuildSlots()
+
+ListenToPlayerEvent("primary_hand_changed", function()
+    BodyHolsters.slots = rebuildSlots()
+end)
 
 Convars:RegisterCommand("body_holsters_slot", function (_, name, x, y, z, radius)
     -- Printing all slots if no name given
