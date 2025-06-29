@@ -1,6 +1,5 @@
 ---@TODO Test gas mask preventing unholster on shoulder (hmd attachments seem to be internally handled)
 ---@TODO Add animations for weapon holster
----@TODO Update ammo count on holstered weapons (no known way to getting ammo count)
 
 local function convarUpdateController()
     BodyHolsters:UpdateControllerInputs()
@@ -103,6 +102,8 @@ function (reg)
     end
 end)
 EasyConvars:SetPersistent("body_holsters_unholster_action", true)
+
+EasyConvars:RegisterConvar("body_holsters_use_actual_weapons", true, "If the actual weapon entities should be holstered for accurate display", 0)
 
 
 ---All convar work that needs to be done after convars have finished setting up
@@ -357,14 +358,13 @@ function GetHolsteredWeaponClone(weapon)
 end
 
 ---Get data related to holstering, usually to do with the backpack.
----@return Vector holsterOrigin # The origin of the holster entity.
 ---@return EntityHandle holsterEnt # The entity used for holstering.
-local function getPlayerHolsterData()
+local function getHolsterEnt()
     local backpack = Player:GetBackpack()
     if backpack then
-        return backpack:GetCenter(), backpack
+        return backpack
     else
-        return Player.HMDAvatar:GetAbsOrigin(), Player.HMDAvatar
+        return Player.HMDAvatar
     end
 end
 
@@ -373,13 +373,8 @@ end
 ---@return BodyHolstersSlot[]
 local function getNearestSlots(pos)
     local slots = {}
-    local holsterPos, holsterEnt = getPlayerHolsterData()
     for _, slot in ipairs(BodyHolsters.slots) do
-
-        local lookZ = Player:EyeAngles():Forward().z
-        local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
-                                                                    ---@TODO PUT adjust BACK IN VECTOR BEFORE RELEASE, SAME IN DEBUG FUNCTION
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust, 0, -adjust))
+        local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
 
         local distance = VectorDistance(slotOrigin, pos)
 
@@ -413,16 +408,13 @@ local function getHandPosition()
 end
 
 local function holsterDebugThink()
-    local holsterOrigin, holsterEnt = getPlayerHolsterData()
     local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
 
     -- Hand position
     debugoverlay:Sphere(handOrigin, 0.5, 255,255,255,255,true,0)
 
     for i, slot in ipairs(BodyHolsters.slots) do
-        local lookZ = Player:EyeAngles():Forward().z
-        local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
-        local slotOrigin = holsterEnt:TransformPointEntityToWorld(slot.offset - Vector(adjust, 0, -adjust))
+        local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
         local r,g,b = 255,255,255
         local weapon = Player:GetWeapon()
         local radius = slot.radius
@@ -430,6 +422,7 @@ local function holsterDebugThink()
             radius = radius + BodyHolsters.offHandRadiusIncrease
         end
         if slot.storedWeapon ~= nil then
+            debugoverlay:Sphere(slot.storedWeapon:GetCenter(), 2, 0, 255, 255, 255, false, 0)
             if weapon == nil and Player.PrimaryHand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= radius then
                 -- Slot full and can be grabbed
                 r,g,b = 0,0,255 --blue
@@ -489,6 +482,32 @@ local function cloneWeapon(weapon, class, spawnkeys)
     return clone
 end
 
+---
+---Gets if an entity is an actual weapon entity (as opposed to a clone).
+---
+---@param ent EntityHandle
+---@return boolean
+local function isActualWeapon(ent)
+    local cls = ent:GetClassname()
+    return cls == "hlvr_weapon_energygun"
+    or cls == "hlvr_weapon_shotgun"
+    or cls == "hlvr_weapon_rapidfire"
+    or cls == "hlvr_weapon_generic_pistol"
+    or cls == "hlvr_multitool"
+end
+
+local function enableAllRenderingForWeapon(ent)
+    if not IsValidEntity(ent) then return end
+
+    ent:SetRenderingEnabled(true)
+    for child in ent:IterateChildren() do
+        -- This is normally invisible, will create shadows
+        if child:GetName() ~= "shotgun_tube_physics" then
+            child:SetRenderingEnabled(true)
+        end
+    end
+end
+
 ---Get if a weapon can be stored in a slot, making sure it's empty and multitool is accepted.
 ---@param slot BodyHolstersSlot
 ---@param weapon EntityHandle
@@ -501,6 +520,22 @@ function BodyHolsters:CanStoreInSlot(slot, weapon)
         return true
     end
     return false
+end
+
+local function getSlotLocalOriginAdjusted(slot, holsterEnt)
+    holsterEnt = holsterEnt or getHolsterEnt()
+    local lookZ = Player:EyeAngles():Forward().z
+    local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
+    return slot.offset - Vector(adjust, 0, -adjust)
+end
+
+---@param slot BodyHolstersSlot
+---@param holsterEnt? EntityHandle
+---@return Vector
+function BodyHolsters:GetSlotWorldOrigin(slot, holsterEnt)
+    holsterEnt = holsterEnt or getHolsterEnt()
+    local localOrigin = getSlotLocalOriginAdjusted(slot, holsterEnt)
+    return holsterEnt:TransformPointEntityToWorld(localOrigin)
 end
 
 ---Holster a weapon in a slot.
@@ -518,8 +553,15 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
 
     -- Create new clone if enabled
     if EasyConvars:GetBool("body_holsters_visible_weapons") then
-        local weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
-        local _, holsterEnt = getPlayerHolsterData()
+        local weaponClone = weapon
+        local holsterEnt = getHolsterEnt()
+
+        if not EasyConvars:GetBool("body_holsters_use_actual_weapons") then
+            weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
+        else
+            enableAllRenderingForWeapon(weaponClone)
+        end
+
         weaponClone:SetParent(holsterEnt, "")
 
         if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
@@ -552,7 +594,7 @@ function BodyHolsters:UnholsterSlot(slot, silent)
     if clone then
         clone:Kill()
     -- Warn only if clones should exist
-    elseif EasyConvars:GetBool("body_holsters_visible_weapons") then
+    elseif EasyConvars:GetBool("body_holsters_visible_weapons") and not EasyConvars:GetBool("body_holsters_use_actual_weapons") then
         warn("Clone doesn't exist for stored weapon " ..Debug.EntStr(slot.storedWeapon))
     end
 
@@ -592,16 +634,17 @@ local inputHolsterCallback = function(params)
             if slot.storedWeapon ~= nil and slot.storedWeapon ~= weapon then
                 notifyInvalid = true
             elseif slot.storedWeapon == nil or slot.storedWeapon == weapon then
-                -- Unholster the weapon everywhere else first
-                BodyHolsters:UnholsterWeapon(weapon, true)
-                -- Then holster into slot
-                BodyHolsters:HolsterWeapon(slot, weapon, false)
-
                 Player.PrimaryHand:FireHapticPulse(1)
                 notifyInvalid = false
 
                 -- Remove weapon from hand
                 Player:SetWeapon("hand_use_controller")
+
+                -- Unholster the weapon everywhere else first
+                BodyHolsters:UnholsterWeapon(weapon, true)
+                -- Then holster into slot
+                -- Needs to be done after SetWeapon to support body_holsters_use_actual_weapons
+                BodyHolsters:HolsterWeapon(slot, weapon, false)
 
                 devprints2("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
                 break
