@@ -34,29 +34,6 @@ EasyConvars:RegisterConvar("body_holsters_holster_ungrip_amount", 0.1, "[0-1] va
 EasyConvars:SetPersistent("body_holsters_holster_ungrip_amount", true)
 
 
--- EasyConvars:RegisterConvar("body_holsters_require_trigger_to_unholster", "0", "Trigger button (shoot) must be pressed to unholster a weapon instead of the grip.", 0, function (newVal, oldVal)
---     if truthy(newVal) then
---         EasyConvars:SetBool("body_holsters_unholster_is_analog", true)
---         EasyConvars:SetInt("body_holsters_unholster_action", DIGITAL_INPUT_FIRE)
-
---         EasyConvars:SetWasChanged("body_holsters_unholster_is_analog", true)
---         EasyConvars:SetWasChanged("body_holsters_unholster_action", true)
---     end
-
---     convarUpdateController()
--- end)
--- EasyConvars:SetPersistent("body_holsters_require_trigger_to_unholster", true)
-
-
--- EasyConvars:RegisterConvar("body_holsters_knuckles_use_squeeze", "1", "Knuckles controllers will use the xen squeeze analog instead of hand curl", 0, function (newVal, oldVal)
---     -- Automatically update the grip amount if the user hasn't set a custom value
---     if not EasyConvars:GetBool("body_holsters_knuckles_use_squeeze") and not EasyConvars:WasChangedByUser("body_holsters_unholster_grip_amount") then
---         EasyConvars:SetFloat("body_holsters_unholster_grip_amount", 1.0)
---     end
--- end)
--- EasyConvars:SetPersistent("body_holsters_knuckles_use_squeeze", true)
-
-
 EasyConvars:RegisterConvar("body_holsters_use_procedural_angles", "0", "Visible weapons will use the angle of the weapon when holstered.", 0)
 EasyConvars:SetPersistent("body_holsters_use_procedural_angles", true)
 
