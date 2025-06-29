@@ -603,7 +603,7 @@ local inputHolsterCallback = function(params)
                 -- Remove weapon from hand
                 Player:SetWeapon("hand_use_controller")
 
-                devprints("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
+                devprints2("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
                 break
             end
         end
@@ -639,8 +639,7 @@ local inputUnholsterCallback = function(params)
                     Player:SetWeapon(slot.storedWeapon)
                 end
 
-
-                devprints("Unholstered", Debug.EntStr(slot.storedWeapon), "from", slot.name)
+                devprints2("Unholstered", Debug.EntStr(slot.storedWeapon), "from", slot.name)
                 BodyHolsters:UnholsterSlot(slot, false)
                 Player.PrimaryHand:FireHapticPulse(2)
                 break
