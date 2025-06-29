@@ -156,7 +156,7 @@ Input.AutoStart = true
 
 local cloneName = "__weapon_clone"
 
-local version = "v1.1.0"
+local version = "v2.0.0"
 
 ---@class BodyHolsters
 BodyHolsters = {}
