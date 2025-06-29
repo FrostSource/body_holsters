@@ -63,9 +63,13 @@ EasyConvars:RegisterConvar("body_holsters_holster_action", ANALOG_INPUT_HAND_CUR
 function (reg)
     Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
     if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-        Msg("Holster analog action is " .. Input:GetAnalogDescription(tonumber(reg.value)) .. "\n")
+        Msg("Holster analog action is '" .. Input:GetAnalogDescription(tonumber(reg.value)) .. "'\n")
     else
-        Msg("Holster digital action is " .. Input:GetButtonDescription(tonumber(reg.value)) .. "\n")
+        Msg("Holster digital action is '" .. Input:GetButtonDescription(tonumber(reg.value)) .. "'\n")
+    end
+
+    if reg.desc ~= nil and reg.desc ~= "" then
+        Msg(reg.desc .. "\n")
     end
 end)
 EasyConvars:SetPersistent("body_holsters_holster_action", true)
@@ -96,9 +100,13 @@ end, "The digital or analog action for unholstering", 0, convarUpdateController,
 function (reg)
     Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
     if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-        Msg("Unholster analog action is " .. Input:GetAnalogDescription(tonumber(reg.value)) .. "\n")
+        Msg("Unholster analog action is '" .. Input:GetAnalogDescription(tonumber(reg.value)) .. "'\n")
     else
-        Msg("Unholster digital action is " .. Input:GetButtonDescription(tonumber(reg.value)) .. "\n")
+        Msg("Unholster digital action is '" .. Input:GetButtonDescription(tonumber(reg.value)) .. "'\n")
+    end
+
+    if reg.desc ~= nil and reg.desc ~= "" then
+        Msg(reg.desc .. "\n")
     end
 end)
 EasyConvars:SetPersistent("body_holsters_unholster_action", true)
