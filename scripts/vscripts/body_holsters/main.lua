@@ -223,7 +223,7 @@ RegisterAlyxLibDiagnostic(addonID, function ()
         return false, "Backpack entity not found. Backpack is required for body holsters to function correctly."
     end
 
-    Msg("Body Holsters last think time: " .. Time() - lastThinkTime .. " seconds ago (" .. lastThinkTime .. ")\n")
+    Msg("Body Holsters last think time: " .. lastThinkTime .. " seconds ago.\n")
 
     return true
 end)
