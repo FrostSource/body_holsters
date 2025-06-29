@@ -1,5 +1,4 @@
 ---@TODO Test gas mask preventing unholster on shoulder (hmd attachments seem to be internally handled)
----@TODO Add animations for weapon holster
 
 local function convarUpdateController()
     BodyHolsters:UpdateControllerInputs()
@@ -112,6 +111,7 @@ end)
 EasyConvars:SetPersistent("body_holsters_unholster_action", true)
 
 EasyConvars:RegisterConvar("body_holsters_use_actual_weapons", true, "If the actual weapon entities should be holstered for accurate display", 0)
+EasyConvars:RegisterConvar("body_holsters_animate", true, "If holstered weapons should animate to their position", 0)
 
 
 ---All convar work that needs to be done after convars have finished setting up
@@ -232,7 +232,9 @@ end)
 ---This causes a perceived disparity between where the slots actually are vs where you think they should be
 ---This variable artificially moves slots back and up based on how much the player is looking down
 ---When fully looking down the slots will be moved this many units back
-BodyHolsters.cameraForwardZSlotAdjustment = 5
+BodyHolsters.cameraForwardZSlotAdjustment = 0
+-- This was disabled because the clone's local origin does not update with this value
+-- so there is a discrepancy between where the slot is vs where the clone is
 
 ---Players have less reach to the non-dominant side of the body.
 ---If `body_holsters_increase_offhand_side_radius` is true then non-dominant side slots will increase there radius by this many units.
@@ -572,11 +574,56 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
 
         weaponClone:SetParent(holsterEnt, "")
 
+        local desiredLocalAngles = weaponClone:GetLocalAngles()
         if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
-            weaponClone:SetLocalQAngle(slot.angles)
+            desiredLocalAngles = slot.angles
         end
 
-        weaponClone:SetCenter(holsterEnt:TransformPointEntityToWorld(slot.offset))
+        local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
+        local desiredWorldPos = holsterEnt:TransformPointEntityToWorld(holsterLocalOffset)
+        local center = slot.attachHandle and
+            weaponClone:GetAttachmentNameOrigin("vr_controller_root") or
+            weaponClone:GetCenter()
+        local newOriginWorld = desiredWorldPos - (center - weaponClone:GetOrigin())
+        local desiredLocalOrigin = holsterEnt:TransformPointWorldToEntity(newOriginWorld)
+
+        if EasyConvars:GetBool("body_holsters_animate") then
+
+            local animSpeed = 0.3
+            local curve = Animation.Curves.easeOutBack
+
+            -- Animate position
+            weaponClone:Animate(
+            -- getter
+            function(ent)
+                return ent:GetLocalOrigin()
+            end,
+            -- setter
+            function(ent, val)
+                ent:SetLocalOrigin(val)
+            end,
+            -- local position, center + offset
+            desiredLocalOrigin,
+            curve, animSpeed)
+
+            -- Animate angles
+            weaponClone:Animate(
+            -- getter
+            function(ent)
+                return ent:GetLocalAngles()
+            end,
+            -- setter
+            function(ent, val)
+                ent:SetLocalQAngle(val)
+            end,
+            -- local position, center + offset
+            desiredLocalAngles,
+            curve, animSpeed)
+
+        else
+            weaponClone:SetLocalQAngle(desiredLocalAngles)
+            weaponClone:SetLocalOrigin(desiredLocalOrigin)
+        end
 
     end
 
