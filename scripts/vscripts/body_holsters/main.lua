@@ -532,7 +532,8 @@ local function enableAllRenderingForWeapon(ent)
     ent:SetRenderingEnabled(true)
     for child in ent:IterateChildren() do
         -- This is normally invisible, will create shadows
-        if child:GetName() ~= "shotgun_tube_physics" then
+        if child:GetName() ~= "shotgun_tube_physics"
+        and child:GetClassname() ~= "hlvr_weaponmodule_itemproxy" then
             child:SetRenderingEnabled(true)
         end
     end
