@@ -736,6 +736,23 @@ local inputHolsterCallback = function(params)
     end
 end
 
+---Logic needs to be delayed to allow time for cough pose to be disabled
+---@param weapon EntityHandle
+---@param slot BodyHolstersSlot
+local function unholsterDelayedLogic(weapon, slot)
+
+    -- Do this manually because weapons don't need special attaching
+    Player.PrimaryHand:RemoveHandAttachmentByHandle(weapon)
+    Player.PrimaryHand:AddHandAttachment(weapon)
+    if weapon:GetClassname() == "hlvr_multitool" then
+        -- multitool will appear but won't function with hacking ui
+        Player.PrimaryHand:AddHandAttachment(weapon)
+    end
+
+    devprints2("Unholstered", Debug.EntStr(slot.storedWeapon), "from", slot.name)
+    BodyHolsters:UnholsterSlot(slot, false)
+end
+
 local inputHolsterID
 
 local inputUnholsterCallback = function(params)
@@ -749,20 +766,18 @@ local inputUnholsterCallback = function(params)
         for _, slot in ipairs(slots) do
             if slot.storedWeapon ~= nil then
 
+                local stored = slot.storedWeapon
                 local coughpose = Player.HMDAvatar:GetFirstChildWithClassname("prop_handpose")
                 if coughpose then
                     coughpose:EntFire("Disable")
-                    local stored = slot.storedWeapon
                     Player:Delay(function()
-                        Player:SetWeapon(stored)
+                        unholsterDelayedLogic(stored, slot)
                         coughpose:Delay(function() coughpose:EntFire("Enable") end, 0.2)
-                    end, 0.1)
+                    end, 0.01)
                 else
-                    Player:SetWeapon(slot.storedWeapon)
+                    unholsterDelayedLogic(stored, slot)
                 end
 
-                devprints2("Unholstered", Debug.EntStr(slot.storedWeapon), "from", slot.name)
-                BodyHolsters:UnholsterSlot(slot, false)
                 Player.PrimaryHand:FireHapticPulse(2)
                 break
             end
