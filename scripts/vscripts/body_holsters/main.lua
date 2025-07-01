@@ -1017,9 +1017,9 @@ ListenToPlayerEvent("vr_player_ready", function (params)
 
     Player:SetContextThink("playerHolsterThink", playerHolsterThink, 0)
 
-    if debug and IsInToolsMode() and Convars:GetInt("developer") > 1 then
-        SendToConsole("body_holsters_debug 1")
-    end
+    -- if debug and IsInToolsMode() and Convars:GetInt("developer") > 1 then
+    --     SendToConsole("body_holsters_debug 1")
+    -- end
 
     Player:Delay(function ()
         BodyHolsters:UpdateControllerInputs()
