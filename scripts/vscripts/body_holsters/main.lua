@@ -726,6 +726,8 @@ function BodyHolsters:UnholsterSlot(slot, silent)
         return false
     end
 
+    weapon:SetParent(nil, nil)
+
     local clone = GetHolsteredWeaponClone(weapon)
     if clone then
         clone:Kill()
@@ -808,6 +810,7 @@ local inputHolsterCallback = function(params)
                 -- Needs to be done after SetWeapon to support body_holsters_use_actual_weapons
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
 
+                if EasyConvars:GetBool("body_holsters_use_actual_weapons") then
                 -- Parented guns bug out after game loads and stop following backpack
                 -- need to be unparented and wait a moment before reattaching
                 unparentHolsteredWeapons()
@@ -821,6 +824,7 @@ local inputHolsterCallback = function(params)
                 Player:Delay(function()
                     BodyHolsters:UpdateHolsteredWeapons()
                 end, 0.03) -- seems to be the shortest possible time
+                end
 
                 devprints2("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
                 break
