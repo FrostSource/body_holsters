@@ -572,6 +572,68 @@ function BodyHolsters:GetSlotWorldOrigin(slot, holsterEnt)
     return holsterEnt:TransformPointEntityToWorld(localOrigin)
 end
 
+---Get the desired local position relative to the holster ent for a given weapon.
+---@param weapon EntityHandle # The weapon to get the position for
+---@param slot BodyHolstersSlot # The holster slot where the weapon is being holstered
+---@param holsterEnt? EntityHandle # The entity the weapon will be parented to
+---@return Vector # The local origin relative to the holster ent where `weapon` should be
+local function getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
+    holsterEnt = holsterEnt or getHolsterEnt()
+    local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
+    local desiredWorldPos = holsterEnt:TransformPointEntityToWorld(holsterLocalOffset)
+    local center = slot.attachHandle and
+        weapon:GetAttachmentNameOrigin("vr_controller_root") or
+        weapon:GetCenter()
+    local newOriginWorld = desiredWorldPos - (center - weapon:GetOrigin())
+    return holsterEnt:TransformPointWorldToEntity(newOriginWorld)
+end
+
+---Get the desired local angles relative to the holster ent for a given weapon.
+---@param weapon EntityHandle # The weapon to get the angles for
+---@param slot BodyHolstersSlot # The holster slot where the weapon is being holstered
+---@return QAngle # The local angles relative to the holster ent where `weapon` should be angled
+local function getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+    if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
+        return slot.angles
+    end
+
+    return weapon:GetLocalAngles()
+end
+
+local function unparentHolsteredWeapons()
+    for _, slot in ipairs(BodyHolsters.slots) do
+        local weapon = slot.storedWeapon
+        if weapon then
+            weapon:SetParent(nil, nil)
+        end
+    end
+end
+
+---Updates a specific holstered slot to make weapons visible and attached where they should be.
+---@param slot BodyHolstersSlot
+---@param holsterEnt? EntityHandle
+function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
+    holsterEnt = holsterEnt or getHolsterEnt()
+    local weapon = slot.storedWeapon
+    if weapon and weapon ~= Player:GetWeapon() then
+        enableAllRenderingForWeapon(weapon)
+        weapon:SetParent(holsterEnt, "")
+        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
+        local localOrigin = weapon:LoadVector("holsteredLocalOrigin") or getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+        weapon:SetLocalQAngle(localAngles)
+        weapon:SetLocalOrigin(localOrigin)
+    end
+end
+
+---Updates all holstered weapons to be visible and attached where they should be.
+---This is used to fix 'actual weapon' issues.
+function BodyHolsters:UpdateHolsteredWeapons()
+    local holsterEnt = getHolsterEnt()
+    for _, slot in ipairs(BodyHolsters.slots) do
+        self:UpdateHolsteredSlot(slot, holsterEnt)
+    end
+end
+
 ---Holster a weapon in a slot.
 ---
 ---**This does NOT remove the weapon from the hand! It only assigns it to a slot.**
@@ -598,18 +660,11 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
 
         weaponClone:SetParent(holsterEnt, "")
 
-        local desiredLocalAngles = weaponClone:GetLocalAngles()
-        if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
-            desiredLocalAngles = slot.angles
-        end
+        local desiredLocalAngles = getDesiredHolsteredWeaponLocalAngles(weaponClone, slot)
+        weaponClone:SaveQAngle("holsteredLocalAngles", desiredLocalAngles)
 
-        local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
-        local desiredWorldPos = holsterEnt:TransformPointEntityToWorld(holsterLocalOffset)
-        local center = slot.attachHandle and
-            weaponClone:GetAttachmentNameOrigin("vr_controller_root") or
-            weaponClone:GetCenter()
-        local newOriginWorld = desiredWorldPos - (center - weaponClone:GetOrigin())
-        local desiredLocalOrigin = holsterEnt:TransformPointWorldToEntity(newOriginWorld)
+        local desiredLocalOrigin = getDesiredHolsteredWeaponLocalOrigin(weaponClone, slot, holsterEnt)
+        weaponClone:SaveVector("holsteredLocalOrigin", desiredLocalOrigin)
 
         if EasyConvars:GetBool("body_holsters_animate") then
 
@@ -699,6 +754,29 @@ function BodyHolsters:UnholsterWeapon(weapon, silent)
     return false
 end
 
+---Allows skipping weapon_switch event for a given Time()
+local skipWpnSwitchForTime = 0
+
+---Update weapons back into place if player accidentally equips a holstered weapon
+---Also unparents currently equipped weapon from backpack just in case
+---@param params PlayerEventWeaponSwitch
+ListenToPlayerEvent("weapon_switch", function(params)
+    if skipWpnSwitchForTime == Time() then return end
+
+    if EasyConvars:GetBool("body_holsters_use_actual_weapons") then
+        unparentHolsteredWeapons()
+        for _, slot in ipairs(BodyHolsters.slots) do
+            if slot.storedWeapon ~= nil then
+                if slot.storedWeapon ~= params.item then
+                    BodyHolsters:UpdateHolsteredSlot(slot)
+                else
+                    slot.storedWeapon:SetParent(nil, nil)
+                end
+            end
+        end
+    end
+end)
+
 local inputHolsterCallback = function(params)
     local weapon = Player:GetWeapon()
     if weapon ~= nil then
@@ -716,6 +794,9 @@ local inputHolsterCallback = function(params)
                 Player.PrimaryHand:FireHapticPulse(1)
                 notifyInvalid = false
 
+                -- Skip weapon switch for this frame to avoid update spamming
+                skipWpnSwitchForTime = Time()
+
                 -- Remove weapon from hand
                 Player:SetWeapon("hand_use_controller")
 
@@ -724,6 +805,20 @@ local inputHolsterCallback = function(params)
                 -- Then holster into slot
                 -- Needs to be done after SetWeapon to support body_holsters_use_actual_weapons
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
+
+                -- Parented guns bug out after game loads and stop following backpack
+                -- need to be unparented and wait a moment before reattaching
+                unparentHolsteredWeapons()
+                -- Unparenting turns them invisible so make visible while we wait
+                -- thanks valve
+                for _, _slot in ipairs(BodyHolsters.slots) do
+                    if _slot.storedWeapon then
+                        enableAllRenderingForWeapon(_slot.storedWeapon)
+                    end
+                end
+                Player:Delay(function()
+                    BodyHolsters:UpdateHolsteredWeapons()
+                end, 0.03) -- seems to be the shortest possible time
 
                 devprints2("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
                 break
@@ -872,11 +967,29 @@ local EQUIP_BACKPACK_KEYS = {
     backpack_enabled = "0",
 }
 
-ListenToPlayerEvent("vr_player_ready", function (params)
-
+-- This has to be done before vr_player_ready for some reason
+-- no idea why delaying it fails to work
+ListenToPlayerEvent("player_activate", function()
     for _, slot in ipairs(BodyHolsters.slots) do
         slot.storedWeapon = Player:LoadEntity("BodyHolster_"..slot.name)
+        if slot.storedWeapon then
+            slot.storedWeapon:SetParent(nil, "")
+        end
     end
+
+    unparentHolsteredWeapons()
+    for _, slot in ipairs(BodyHolsters.slots) do
+        if slot.storedWeapon ~= nil then
+            if slot.storedWeapon ~= Player:GetWeapon() then
+                BodyHolsters:UpdateHolsteredSlot(slot)
+            else
+                slot.storedWeapon:SetParent(nil, nil)
+            end
+        end
+    end
+end)
+
+ListenToPlayerEvent("vr_player_ready", function (params)
 
     equipDisableBackpack = Entities:FindByName(nil, "body_holsters_equipDisableBackpack")
     if not equipDisableBackpack then
