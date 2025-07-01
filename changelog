@@ -1,3 +1,18 @@
+Update 8
+
+Updated to AlyxLib v1.4.0
+
+Added body_holsters_use_actual_weapons (on by default) to allow accurate visible weapon display. Uses the real weapon entities so any addon modifications should also apply.
+body_holsters_visible_weapons is still OFF by default, so make sure you turn it on if you want to see the new weapons.
+
+Added body_holsters_animate (on by default) to give holstered weapons a smooth transition into place.
+
+Fixed cough handpose sticking hand to face.
+
+Updated slot positions.
+
+Added dynamic repositioning and angle slots based on handedness (only applies on map load).
+
 Update 7
 
 Updated to AlyxLib v1.3.0
