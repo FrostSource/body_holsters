@@ -111,7 +111,10 @@ end)
 EasyConvars:SetPersistent("body_holsters_unholster_action", true)
 
 EasyConvars:RegisterConvar("body_holsters_use_actual_weapons", true, "If the actual weapon entities should be holstered for accurate display", 0)
+EasyConvars:SetPersistent("body_holsters_use_actual_weapons", true)
+
 EasyConvars:RegisterConvar("body_holsters_animate", true, "If holstered weapons should animate to their position", 0)
+EasyConvars:SetPersistent("body_holsters_animate", true)
 
 
 ---All convar work that needs to be done after convars have finished setting up
