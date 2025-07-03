@@ -619,8 +619,8 @@ function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
     if weapon and weapon ~= Player:GetWeapon() then
         enableAllRenderingForWeapon(weapon)
         weapon:SetParent(holsterEnt, "")
-        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
-        local localOrigin = weapon:LoadVector("holsteredLocalOrigin") or getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+        local localOrigin = weapon:LoadVector("holsteredLocalOrigin") or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
         weapon:SetLocalQAngle(localAngles)
         weapon:SetLocalOrigin(localOrigin)
     end
