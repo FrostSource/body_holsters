@@ -809,20 +809,20 @@ local inputHolsterCallback = function(params)
                 -- Needs to be done after SetWeapon to support body_holsters_use_actual_weapons
                 BodyHolsters:HolsterWeapon(slot, weapon, false)
 
-                if EasyConvars:GetBool("body_holsters_use_actual_weapons") then
-                -- Parented guns bug out after game loads and stop following backpack
-                -- need to be unparented and wait a moment before reattaching
-                unparentHolsteredWeapons()
-                -- Unparenting turns them invisible so make visible while we wait
-                -- thanks valve
-                for _, _slot in ipairs(BodyHolsters.slots) do
-                    if _slot.storedWeapon then
-                        enableAllRenderingForWeapon(_slot.storedWeapon)
+                if EasyConvars:GetBool("body_holsters_visible_weapons") and EasyConvars:GetBool("body_holsters_use_actual_weapons") then
+                    -- Parented guns bug out after game loads and stop following backpack
+                    -- need to be unparented and wait a moment before reattaching
+                    unparentHolsteredWeapons()
+                    -- Unparenting turns them invisible so make visible while we wait
+                    -- thanks valve
+                    for _, _slot in ipairs(BodyHolsters.slots) do
+                        if _slot.storedWeapon then
+                            enableAllRenderingForWeapon(_slot.storedWeapon)
+                        end
                     end
-                end
-                Player:Delay(function()
-                    BodyHolsters:UpdateHolsteredWeapons()
-                end, 0.03) -- seems to be the shortest possible time
+                    Player:Delay(function()
+                        BodyHolsters:UpdateHolsteredWeapons()
+                    end, 0.03) -- seems to be the shortest possible time
                 end
 
                 devprints2("Holstered", weapon:GetClassname(), weapon:GetName(), "in", slot.name)
