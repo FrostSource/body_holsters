@@ -254,7 +254,6 @@ BodyHolsters.offHandRadiusIncrease = 1.2
 ---@field disableBackpack? boolean # If the backpack should be disabled when hand is inside this slot.
 
 local function leftHanded(a, b)
-    print(Convars:GetBool("hlvr_left_hand_primary") and "a" or "b")
     return Convars:GetBool("hlvr_left_hand_primary") and a or b
 end
 
