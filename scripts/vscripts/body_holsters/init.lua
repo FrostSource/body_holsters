@@ -8,4 +8,5 @@ if IsServer() then
     -- execute code or load mod libraries here
     require("body_holsters.main")
     require("body_holsters.debug")
+    require("body_holsters.debug_menu")
 end
