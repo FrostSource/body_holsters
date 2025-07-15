@@ -43,12 +43,10 @@ EasyConvars:RegisterConvar("body_holsters_holster_is_analog", function()
     else
         return true
     end
-end, "Whether analog actions should be used instead of digital actions for holstering.", 0, nil,
--- Display func
-function (reg)
-    Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
-    Msg("Whether analog actions should be used instead of digital actions for holstering. ")
-    if truthy(reg.value) then
+end, "Whether analog actions should be used instead of digital actions for holstering.", 0,
+-- Main callback (also display)
+function (newValue, prevValue)
+    if truthy(newValue) then
         Msg("Holstering is using analog actions.\n")
     else
         Msg("Holstering is using digital actions.\n")
@@ -57,32 +55,26 @@ end)
 EasyConvars:SetPersistent("body_holsters_holster_is_analog", true)
 
 
-EasyConvars:RegisterConvar("body_holsters_holster_action", ANALOG_INPUT_HAND_CURL, "The digital or analog action for holstering.", 0, convarUpdateController,
--- Display func
-function (reg)
-    Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
+EasyConvars:RegisterConvar("body_holsters_holster_action", ANALOG_INPUT_HAND_CURL, "The digital or analog action for holstering.", 0,
+-- Main callback (also display)
+function (newValue, prevValue)
+    convarUpdateController()
     if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-        Msg("Holster analog action is '" .. Input:GetAnalogDescription(tonumber(reg.value)) .. "'\n")
+        Msg("Holster analog action is now '" .. Input:GetAnalogDescription(tonumber(newValue)) .. "'\n")
     else
-        Msg("Holster digital action is '" .. Input:GetButtonDescription(tonumber(reg.value)) .. "'\n")
-    end
-
-    if reg.desc ~= nil and reg.desc ~= "" then
-        Msg(reg.desc .. "\n")
+        Msg("Holster digital action is now '" .. Input:GetButtonDescription(tonumber(newValue)) .. "'\n")
     end
 end)
 EasyConvars:SetPersistent("body_holsters_holster_action", true)
 
 
-EasyConvars:RegisterConvar("body_holsters_unholster_is_analog", true, "Whether analog actions should be used instead of digital actions for unholstering", 0, nil,
--- Display func
-function (reg)
-    Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
-    Msg("Whether analog actions should be used instead of digital actions for unholstering. ")
-    if truthy(reg.value) then
-        Msg("Unholstering is using analog actions.\n")
+EasyConvars:RegisterConvar("body_holsters_unholster_is_analog", true, "Whether analog actions should be used instead of digital actions for unholstering", 0,
+-- Main callback (also display)
+function (newValue, prevValue)
+    if truthy(newValue) then
+        Msg("Unholstering is now using analog actions.\n")
     else
-        Msg("Unholstering is using digital actions.\n")
+        Msg("Unholstering is now using digital actions.\n")
     end
 end)
 EasyConvars:SetPersistent("body_holsters_unholster_is_analog", true)
@@ -94,18 +86,14 @@ EasyConvars:RegisterConvar("body_holsters_unholster_action", function()
     else
         return ANALOG_INPUT_HAND_CURL
     end
-end, "The digital or analog action for unholstering", 0, convarUpdateController,
--- Display func
-function (reg)
-    Msg(reg.name .. " = " .. tostring(reg.value) .. "\n")
+end, "The digital or analog action for unholstering", 0,
+-- Main callback (also display)
+function (newValue, prevValue)
+    convarUpdateController()
     if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-        Msg("Unholster analog action is '" .. Input:GetAnalogDescription(tonumber(reg.value)) .. "'\n")
+        Msg("Unholster analog action is now '" .. Input:GetAnalogDescription(tonumber(newValue)) .. "'\n")
     else
-        Msg("Unholster digital action is '" .. Input:GetButtonDescription(tonumber(reg.value)) .. "'\n")
-    end
-
-    if reg.desc ~= nil and reg.desc ~= "" then
-        Msg(reg.desc .. "\n")
+        Msg("Unholster digital action is now '" .. Input:GetButtonDescription(tonumber(newValue)) .. "'\n")
     end
 end)
 EasyConvars:SetPersistent("body_holsters_unholster_action", true)
