@@ -154,7 +154,7 @@ BodyHolsters = {}
 BodyHolsters.version = version
 BodyHolsters.__index = BodyHolsters
 
-local addonID = RegisterAlyxLibAddon("Body Holsters", version, "3144612716", "body_holsters", "v1.3.0", nil)
+local addonID = RegisterAlyxLibAddon("Body Holsters", version, "3144612716", "body_holsters", "v2.0.0", nil)
 
 local lastThinkTime = 0
 
