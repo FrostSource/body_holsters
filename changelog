@@ -1,6 +1,8 @@
-Update 8
+Update 8 (v2.0.0)
 
 Updated to AlyxLib v1.4.0
+
+Added body holsters tab for AlyxLib debug menu
 
 Added body_holsters_use_actual_weapons (on by default) to allow accurate visible weapon display. Uses the real weapon entities so any addon modifications should also apply.
 body_holsters_visible_weapons is still OFF by default, so make sure you turn it on if you want to see the new weapons.
