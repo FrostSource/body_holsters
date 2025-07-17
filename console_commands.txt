@@ -13,6 +13,16 @@ Default = 0
 Weapons will be visibly attached to the player body when holstered. If enabled when weapons are already holstered, they will need to be reholstered to appear.
 [i]This convar is persistent with your save file.[/i]
 
+[*][b]body_holsters_use_actual_weapons[/b]
+Default = 1
+When body_holsters_visible_weapons is 1, your actual weapons will be visibly holstered allowed for accurate ammo and attachment display.
+[i]This convar is persistent with your save file.[/i]
+
+[*][b]body_holsters_animate[/b]
+Default = 1
+When body_holsters_visible_weapons is 1, weapons will animate into their holstered position instead of instantly snapping into place.
+[i]This convar is persistent with your save file.[/i]
+
 [*][b]body_holsters_increase_offhand_side_radius[/b]
 Default = 1
 Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.
