@@ -1,5 +1,14 @@
 ---@TODO Test gas mask preventing unholster on shoulder (hmd attachments seem to be internally handled)
 
+local util = require("body_holsters.util")
+local getHandPosition = util.getHandPosition
+local cloneWeapon = util.cloneWeapon
+local isActualWeapon = util.isActualWeapon
+local getWeaponFromHand = util.getWeaponFromHand
+local unequipWeapon = util.unequipWeapon
+local equipWeapon = util.equipWeapon
+local enableAllRenderingForWeapon = util.enableAllRenderingForWeapon
+
 local function convarUpdateController()
     BodyHolsters:UpdateControllerInputs()
 end
@@ -107,7 +116,7 @@ EasyConvars:SetPersistent("body_holsters_animate", true)
 
 ---All convar work that needs to be done after convars have finished setting up
 ---Extra checks need to happen here to make sure we don't overwrite user's custom values
-EasyConvars:SetPostInitializer(function()
+EasyConvars:AddPostInitializer(function()
 
     local controllerType = getVRControllerType()
 
@@ -143,11 +152,8 @@ EasyConvars:SetPostInitializer(function()
 end)
 
 require "alyxlib.controls.input"
-Input.AutoStart = true
 
-local cloneName = "__weapon_clone"
-
-local version = "v2.0.0"
+local version = "v3.0.0"
 
 ---@class BodyHolsters
 BodyHolsters = {}
@@ -219,13 +225,32 @@ RegisterAlyxLibDiagnostic(addonID, function ()
     return true
 end)
 
+local dualWieldMode = false
+
+---
+---Enables logic for dual wielding support.
+---
+---Call this at game start if your mod attaches weapons
+---to the secondary hand and you want them to be holstered.
+---
+---Dual wield mode can't be disabled to avoid breaking other mods.
+---
+function BodyHolsters:EnableDualWieldMode()
+    dualWieldMode = true
+    self:UpdateControllerInputs()
+end
+
+function BodyHolsters:IsDualWieldModeEnabled()
+    return dualWieldMode
+end
+
 ---When you look down your head origin moves forward and down but body and arms stay the same place
 ---This causes a perceived disparity between where the slots actually are vs where you think they should be
 ---This variable artificially moves slots back and up based on how much the player is looking down
 ---When fully looking down the slots will be moved this many units back
 BodyHolsters.cameraForwardZSlotAdjustment = 0
--- This was disabled because the clone's local origin does not update with this value
--- so there is a discrepancy between where the slot is vs where the clone is
+---@NOTE: This was disabled because the clone's local origin does not update with this value
+---       so there is a discrepancy between where the slot is and where the clone is
 
 ---Players have less reach to the non-dominant side of the body.
 ---If `body_holsters_increase_offhand_side_radius` is true then non-dominant side slots will increase there radius by this many units.
@@ -237,9 +262,11 @@ BodyHolsters.offHandRadiusIncrease = 1.2
 ---@field angles? QAngle # Local angles to use when parenting to the main holster object.
 ---@field radius number # Size of the slot sphere.
 ---@field storedWeapon? EntityHandle # Handle of the actual inventory weapon stored in the slot.
+---@field storedWeaponHand? CPropVRHand # Handle of the hand that was holding the stored weapon.
 ---@field leftside boolean # Slot is on the left-hand side of the body.
 ---@field attachHandle? boolean # If true, weapon handle will align with the slot, otherwise center will be used.
 ---@field disableBackpack? boolean # If the backpack should be disabled when hand is inside this slot.
+---@field flipangles? boolean # If the angles should be flipped for left hand.
 
 local function leftHanded(a, b)
     return Convars:GetBool("hlvr_left_hand_primary") and a or b
@@ -259,6 +286,7 @@ return {
         storedWeapon = nil,
         leftside = true,
         attachHandle = true,
+        flipangles = false,
     },
     {
         name = "right_hip",
@@ -267,6 +295,7 @@ return {
         radius = 7,
         leftside = false,
         attachHandle = true,
+        flipangles = false,
     },
 
     {
@@ -276,6 +305,7 @@ return {
         radius = 5.5,
         leftside = true,
         attachHandle = true,
+        flipangles = false,
     },
     {
         name = "right_underarm",
@@ -284,6 +314,7 @@ return {
         radius = 5.5,
         leftside = false,
         attachHandle = true,
+        flipangles = false,
     },
 
     {
@@ -294,6 +325,7 @@ return {
         leftside = true,
         disableBackpack = true,
         attachHandle = true,
+        flipangles = false,
     },
     {
         name = "right_shoulder",
@@ -303,6 +335,7 @@ return {
         leftside = false,
         disableBackpack = true,
         attachHandle = true,
+        flipangles = false,
     },
 
     {
@@ -312,6 +345,7 @@ return {
         radius = 4.5,
         leftside = false,
         attachHandle = false,
+        flipangles = true,
     },
 }
 end
@@ -377,7 +411,7 @@ function GetHolsteredWeaponClone(weapon)
     return Entities:FindByName(nil, weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone")
 end
 
----Get data related to holstering, usually to do with the backpack.
+---Gets data related to holstering, usually to do with the backpack.
 ---@return EntityHandle holsterEnt # The entity used for holstering.
 local function getHolsterEnt()
     local backpack = Player:GetBackpack()
@@ -388,10 +422,34 @@ local function getHolsterEnt()
     end
 end
 
----Get slots within range of `pos`, sorted by ascending distance.
+---
+---Gets the radius a slot should be based on its side
+---and the hand interacting with it.
+---
+---@param slot BodyHolstersSlot
+---@param hand? CPropVRHand
+local function getDynamicSlotRadius(slot, hand)
+    hand = hand or Player.PrimaryHand
+
+    if EasyConvars:GetBool("body_holsters_increase_offhand_side_radius")
+    and (
+        (slot.leftside and hand == Player.RightHand)
+        or (not slot.leftside and hand == Player.LeftHand)
+    )
+    then
+        return slot.radius + BodyHolsters.offHandRadiusIncrease
+    end
+
+    return slot.radius
+end
+
+---Gets slots within range of `pos`, sorted by ascending distance.
 ---@param pos Vector
+---@param hand? CPropVRHand
 ---@return BodyHolstersSlot[]
-local function getNearestSlots(pos)
+local function getNearestSlots(pos, hand)
+    hand = hand or Player.PrimaryHand
+
     local slots = {}
     for _, slot in ipairs(BodyHolsters.slots) do
         local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
@@ -399,10 +457,7 @@ local function getNearestSlots(pos)
         local distance = VectorDistance(slotOrigin, pos)
 
         -- Dynamic radius
-        local radius = slot.radius
-        if EasyConvars:GetBool("body_holsters_increase_offhand_side_radius") and (slot.leftside ~= Player.IsLeftHanded) then
-            radius = radius + BodyHolsters.offHandRadiusIncrease
-        end
+        local radius = getDynamicSlotRadius(slot, hand)
 
         if distance <= radius then
             table.insert(slots, { slot = slot, distance = distance })
@@ -421,43 +476,43 @@ local function getNearestSlots(pos)
     return sortedSlots
 end
 
----Get the primary hand origin.
----@return Vector
-local function getHandPosition()
-    return Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
-end
-
 local function holsterDebugThink()
-    local handOrigin = Player.PrimaryHand:GetAttachmentOrigin(Player.PrimaryHand:ScriptLookupAttachment("vr_hand_origin"))
+    local hands = {Player.PrimaryHand}
+    if dualWieldMode then
+        table.insert(hands, Player.SecondaryHand)
+    end
 
-    -- Hand position
-    debugoverlay:Sphere(handOrigin, 0.5, 255,255,255,255,true,0)
+    for _, hand in ipairs(hands) do
+        local handOrigin = hand:GetAttachmentNameOrigin("vr_hand_origin")
 
-    for i, slot in ipairs(BodyHolsters.slots) do
-        local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
-        local r,g,b = 255,255,255
-        local weapon = Player:GetWeapon()
-        local radius = slot.radius
-        if EasyConvars:GetBool("body_holsters_increase_offhand_side_radius") and (slot.leftside ~= Player.IsLeftHanded) then
-            radius = radius + BodyHolsters.offHandRadiusIncrease
-        end
-        if slot.storedWeapon ~= nil then
-            debugoverlay:Sphere(slot.storedWeapon:GetCenter(), 2, 0, 255, 255, 255, false, 0)
-            if weapon == nil and Player.PrimaryHand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= radius then
-                -- Slot full and can be grabbed
-                r,g,b = 0,0,255 --blue
+        -- Hand position
+        debugoverlay:Sphere(handOrigin, 0.5, 255,255,255,255,true,0)
+
+        for i, slot in ipairs(BodyHolsters.slots) do
+            local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
+            local r,g,b = 255,255,255
+            local weapon = getWeaponFromHand(hand)
+            local radius = getDynamicSlotRadius(slot, hand)
+            if slot.storedWeapon ~= nil then
+                debugoverlay:Sphere(slot.storedWeapon:GetCenter(), 2, 0, 255, 255, 255, false, 0)
+                if weapon == nil and hand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= radius then
+                    -- Slot full and can be grabbed
+                    r,g,b = 0,0,255 --blue
+                else
+                    -- Slot full
+                    r,g,b = 255,255,0 --yellow
+                end
             else
-                -- Slot full
-                r,g,b = 255,255,0 --yellow
+                -- Slot empty and hand has weapon
+                if weapon ~= nil and VectorDistance(slotOrigin, getHandPosition(hand)) <= radius and BodyHolsters:CanStoreInSlot(slot, weapon) then
+                    r,g,b = 0,255,0 --green
+                end
             end
-        else
-            -- Slot empty and hand has weapon
-            if weapon ~= nil and VectorDistance(slotOrigin, getHandPosition()) <= radius then
-                r,g,b = 0,255,0 --green
-            end
+
+            -- Slot position
+            debugoverlay:Sphere(slotOrigin, radius, r, g, b, 5, false, 0)
+            debugoverlay:Text(slotOrigin, 0, slot.name, 0, 255, 255, 255, 255, 0)
         end
-        debugoverlay:Sphere(slotOrigin, radius, r, g, b, 5, false, 0)
-        debugoverlay:Text(slotOrigin, 0, slot.name, 0, 255, 255, 255, 255, 0)
     end
 
     return 0
@@ -471,65 +526,6 @@ Convars:RegisterCommand("body_holsters_debug", function (_, on)
         Player:SetContextThink("holsterDebugThink", nil, 0)
     end
 end, "", 0)
-
----Clone a weapon and any children
----@param weapon EntityHandle
-local function cloneWeapon(weapon, class, spawnkeys)
-    class = class or "prop_dynamic_override"
-    spawnkeys = spawnkeys or {}
-
-    local clone = SpawnEntityFromTableSynchronous(class, vlua.tableadd({
-        angles = weapon:GetAngles(),
-        origin = weapon:GetOrigin(),
-        model = weapon:GetModelName(),
-        solid = "0",
-        targetname = cloneName,
-        -- rendermode = EasyConvars:GetBool("body_holsters_visible_weapons") and "kRenderNormal" or "kRenderNone",
-        vscripts = "",
-        disableshadows = "1",
-    }, spawnkeys))
-    clone:SetMaterialGroupHash(weapon:GetMaterialGroupHash())
-    clone:SetMaterialGroupMask(weapon:GetMaterialGroupMask())
-
-    -- Clone weapon children
-    for _, child in ipairs(weapon:GetTopChildren()) do
-        if child:GetModelName() ~= "" and child:GetClassname() ~= "prop_handpose" then
-            local childClone = cloneWeapon(child, class, vlua.tableadd(spawnkeys, {targetname = ""}))
-            childClone:SetParent(clone, "")
-        end
-    end
-
-    return clone
-end
-
----
----Gets if an entity is an actual weapon entity (as opposed to a clone).
----
----@param ent EntityHandle
----@return boolean
-local function isActualWeapon(ent)
-    local cls = ent:GetClassname()
-    return cls == "hlvr_weapon_energygun"
-    or cls == "hlvr_weapon_shotgun"
-    or cls == "hlvr_weapon_rapidfire"
-    or cls == "hlvr_weapon_generic_pistol"
-    or cls == "hlvr_multitool"
-end
-
-local function enableAllRenderingForWeapon(ent)
-    if not IsValidEntity(ent) then return end
-
-    ent:SetRenderingEnabled(true)
-    for child in ent:IterateChildren() do
-        -- This is normally invisible, will create shadows
-        if child:GetName() ~= "shotgun_tube_physics"
-        and child:GetClassname() ~= "hlvr_weaponmodule_itemproxy"
-        and child:GetName() ~= "rapidfire_mag_casing_physics"
-        then
-            child:SetRenderingEnabled(true)
-        end
-    end
-end
 
 ---Get if a weapon can be stored in a slot, making sure it's empty and multitool is accepted.
 ---@param slot BodyHolstersSlot
@@ -580,9 +576,16 @@ end
 ---Get the desired local angles relative to the holster ent for a given weapon.
 ---@param weapon EntityHandle # The weapon to get the angles for
 ---@param slot BodyHolstersSlot # The holster slot where the weapon is being holstered
+---@param hand? CPropVRHand # The hand the weapon is holstered in
 ---@return QAngle # The local angles relative to the holster ent where `weapon` should be angled
-local function getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+local function getDesiredHolsteredWeaponLocalAngles(weapon, slot, hand)
     if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
+        hand = hand or Player.PrimaryHand
+
+        if hand == Player.LeftHand and slot.flipangles then
+            return slot.angles + QAngle(0, 180, 0)
+        end
+
         return slot.angles
     end
 
@@ -598,24 +601,39 @@ local function unparentHolsteredWeapons()
     end
 end
 
+---
 ---Updates a specific holstered slot to make weapons visible and attached where they should be.
----@param slot BodyHolstersSlot
----@param holsterEnt? EntityHandle
+---
+---This is called internally when the player holsters or switches weapons.
+---
+---@param slot BodyHolstersSlot # The holster slot to update
+---@param holsterEnt? EntityHandle # Optional entity the weapon will be parented to
 function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
     holsterEnt = holsterEnt or getHolsterEnt()
+
     local weapon = slot.storedWeapon
-    if weapon and weapon ~= Player:GetWeapon() then
+    if not weapon then return end
+
+    local isEquipped = (weapon == Player:GetWeapon())
+
+    if dualWieldMode then
+        isEquipped = isEquipped or (weapon == getWeaponFromHand(Player.SecondaryHand))
+    end
+
+    if not isEquipped then
         enableAllRenderingForWeapon(weapon)
-        weapon:SetParent(holsterEnt, "")
-        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalAngles(weapon, slot)
+        weapon:SetParent(holsterEnt, nil)
+        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalAngles(weapon, slot, slot.storedWeaponHand)
         local localOrigin = weapon:LoadVector("holsteredLocalOrigin") or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
         weapon:SetLocalQAngle(localAngles)
         weapon:SetLocalOrigin(localOrigin)
     end
 end
 
+---
 ---Updates all holstered weapons to be visible and attached where they should be.
 ---This is used to fix 'actual weapon' issues.
+---
 function BodyHolsters:UpdateHolsteredWeapons()
     local holsterEnt = getHolsterEnt()
     for _, slot in ipairs(BodyHolsters.slots) do
@@ -626,10 +644,18 @@ end
 ---Holster a weapon in a slot.
 ---
 ---**This does NOT remove the weapon from the hand! It only assigns it to a slot.**
----@param slot BodyHolstersSlot
----@param weapon EntityHandle
----@param silent? boolean
-function BodyHolsters:HolsterWeapon(slot, weapon, silent)
+---@param slot BodyHolstersSlot # The holster slot to holster the weapon into
+---@param weapon EntityHandle # The weapon to holster
+---@param hand? CPropVRHand # The hand that is holstering the weapon (defaults to the primary hand)
+---@param silent? boolean # `true` if the holster sound should not be played
+---@overload fun(slot:BodyHolstersSlot, weapon:EntityHandle, silent?:boolean)
+function BodyHolsters:HolsterWeapon(slot, weapon, hand, silent)
+    if type(hand) == "boolean" then
+        silent = hand
+        hand = nil
+    end
+    hand = hand or Player.PrimaryHand
+
     -- Destroy old clone if reholstering from a weapon switch
     local existingWeaponClone = GetHolsteredWeaponClone(weapon)
     if existingWeaponClone then
@@ -647,9 +673,9 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
             enableAllRenderingForWeapon(weaponClone)
         end
 
-        weaponClone:SetParent(holsterEnt, "")
+        weaponClone:SetParent(holsterEnt, nil)
 
-        local desiredLocalAngles = getDesiredHolsteredWeaponLocalAngles(weaponClone, slot)
+        local desiredLocalAngles = getDesiredHolsteredWeaponLocalAngles(weaponClone, slot, hand)
         weaponClone:SaveQAngle("holsteredLocalAngles", desiredLocalAngles)
 
         local desiredLocalOrigin = getDesiredHolsteredWeaponLocalOrigin(weaponClone, slot, holsterEnt)
@@ -696,17 +722,21 @@ function BodyHolsters:HolsterWeapon(slot, weapon, silent)
     end
 
     slot.storedWeapon = weapon
+    slot.storedWeaponHand = hand
     Player:SaveEntity("BodyHolster_"..slot.name, weapon, true)
+    Player:SaveNumber("BodyHolster_"..slot.name.."_hand", hand:GetHandID())
 
     if not silent then
-        StartSoundEventFromPositionReliable("body_holsters.holster", Player.PrimaryHand:GetPalmPosition())
+        StartSoundEventFromPositionReliable("body_holsters.holster", hand:GetPalmPosition())
     end
 end
 
+---
 ---Unholster a weapon from a given slot.
----@param slot BodyHolstersSlot
----@param silent? boolean
----@return boolean # If the weapon was unholstered successfully.
+---
+---@param slot BodyHolstersSlot # The slot to unholster the weapon from
+---@param silent? boolean # `true` if the unholster sound should not be played
+---@return boolean # If the weapon was unholstered successfully
 function BodyHolsters:UnholsterSlot(slot, silent)
     local weapon = slot.storedWeapon
     if not weapon then
@@ -723,11 +753,15 @@ function BodyHolsters:UnholsterSlot(slot, silent)
         warn("Clone doesn't exist for stored weapon " ..Debug.EntStr(slot.storedWeapon))
     end
 
+    local storedHand = slot.storedWeaponHand
     slot.storedWeapon = nil
+    slot.storedWeaponHand = nil
     Player:SaveEntity("BodyHolster_"..slot.name, nil)
+    Player:SaveNumber("BodyHolster_"..slot.name.."_hand", nil)
 
     if not silent then
-        StartSoundEventFromPositionReliable("body_holsters.unholster", Player.PrimaryHand:GetPalmPosition())
+        local soundHand = storedHand or Player.PrimaryHand
+        StartSoundEventFromPositionReliable("body_holsters.unholster", soundHand:GetPalmPosition())
     end
     return true
 end
@@ -750,15 +784,22 @@ local skipWpnSwitchForTime = 0
 
 ---Update weapons back into place if player accidentally equips a holstered weapon
 ---Also unparents currently equipped weapon from backpack just in case
----@param params PlayerEventWeaponSwitch
-ListenToPlayerEvent("weapon_switch", function(params)
+---@param event PlayerEventWeaponSwitch
+ListenToPlayerEvent("weapon_switch", function(event)
     if skipWpnSwitchForTime == Time() then return end
 
     if EasyConvars:GetBool("body_holsters_use_actual_weapons") then
         unparentHolsteredWeapons()
         for _, slot in ipairs(BodyHolsters.slots) do
             if slot.storedWeapon ~= nil then
-                if slot.storedWeapon ~= params.item then
+                local isEquipped = (slot.storedWeapon == event.item)
+
+                isEquipped = isEquipped or (slot.storedWeapon == getWeaponFromHand(Player.PrimaryHand))
+                if dualWieldMode then
+                    isEquipped = isEquipped or (slot.storedWeapon == getWeaponFromHand(Player.SecondaryHand))
+                end
+
+                if not isEquipped then
                     BodyHolsters:UpdateHolsteredSlot(slot)
                 else
                     slot.storedWeapon:SetParent(nil, nil)
@@ -768,34 +809,43 @@ ListenToPlayerEvent("weapon_switch", function(params)
     end
 end)
 
-local inputHolsterCallback = function(params)
-    local weapon = Player:GetWeapon()
+---Callback for holster input.
+---@param self BodyHolsters
+---@param event InputPressCallback
+local inputHolsterCallback = function(self, event)
+    local hand = event.hand or Player.PrimaryHand
+    local weapon = getWeaponFromHand(hand)
+
     if weapon ~= nil then
         if weapon:GetClassname() == "hlvr_multitool" and not EasyConvars:GetBool("body_holsters_allow_multitool") then
             StartSoundEventReliable("Inventory.Invalid", Player)
             return
         end
-        local handOrigin = getHandPosition()
+
+        local handOrigin = getHandPosition(hand)
         local notifyInvalid = false -- Plays a sound if holster is invalid
-        local slots = getNearestSlots(handOrigin)
+        local slots = getNearestSlots(handOrigin, hand)
+
         for _, slot in ipairs(slots) do
             if slot.storedWeapon ~= nil and slot.storedWeapon ~= weapon then
                 notifyInvalid = true
             elseif slot.storedWeapon == nil or slot.storedWeapon == weapon then
-                Player.PrimaryHand:FireHapticPulse(1)
+                hand:FireHapticPulse(1)
                 notifyInvalid = false
 
                 -- Skip weapon switch for this frame to avoid update spamming
                 skipWpnSwitchForTime = Time()
 
                 -- Remove weapon from hand
-                Player:SetWeapon("hand_use_controller")
+                -- Player:SetWeapon("hand_use_controller")
+                unequipWeapon(weapon, hand)
 
                 -- Unholster the weapon everywhere else first
                 BodyHolsters:UnholsterWeapon(weapon, true)
+
                 -- Then holster into slot
                 -- Needs to be done after SetWeapon to support body_holsters_use_actual_weapons
-                BodyHolsters:HolsterWeapon(slot, weapon, false)
+                BodyHolsters:HolsterWeapon(slot, weapon, hand, false)
 
                 if EasyConvars:GetBool("body_holsters_visible_weapons") and EasyConvars:GetBool("body_holsters_use_actual_weapons") then
                     -- Parented guns bug out after game loads and stop following backpack
@@ -827,98 +877,134 @@ end
 ---Logic needs to be delayed to allow time for cough pose to be disabled
 ---@param weapon EntityHandle
 ---@param slot BodyHolstersSlot
-local function unholsterDelayedLogic(weapon, slot)
+---@param hand? CPropVRHand
+local function unholsterDelayedLogic(weapon, slot, hand)
+    hand = hand or Player.PrimaryHand
 
-    -- Do this manually because weapons don't need special attaching
-    Player.PrimaryHand:RemoveHandAttachmentByHandle(weapon)
-    Player.PrimaryHand:AddHandAttachment(weapon)
-    if weapon:GetClassname() == "hlvr_multitool" then
-        -- multitool will appear but won't function with hacking ui
-        Player.PrimaryHand:AddHandAttachment(weapon)
-    end
+    equipWeapon(weapon, hand)
 
     devprints2("Unholstered", Debug.EntStr(slot.storedWeapon), "from", slot.name)
     BodyHolsters:UnholsterSlot(slot, false)
 end
 
-local inputHolsterID
-
-local inputUnholsterCallback = function(params)
+---@param self BodyHolsters
+---@param event InputPressCallback|InputReleaseCallback|InputAnalogCallback
+local inputUnholsterCallback = function(self, event)
+    local hand = event.hand or Player.PrimaryHand
+    local weapon = getWeaponFromHand(hand)
 
     -- Make sure player isn't holding anything first
-    local weapon = Player:GetWeapon()
-    if weapon == nil and Player.PrimaryHand.ItemHeld == nil then
-        local handOrigin = getHandPosition()
-        local slots = getNearestSlots(handOrigin)
+    -- local weapon = Player:GetWeapon()
+    if weapon == nil and hand.ItemHeld == nil then
+        local handOrigin = getHandPosition(hand)
+        local slots = getNearestSlots(handOrigin, hand)
 
         for _, slot in ipairs(slots) do
-            if slot.storedWeapon ~= nil then
+            if slot.storedWeapon ~= nil and slot.storedWeaponHand == hand then
 
                 local stored = slot.storedWeapon
                 local coughpose = Player.HMDAvatar:GetFirstChildWithClassname("prop_handpose")
                 if coughpose then
                     coughpose:EntFire("Disable")
                     Player:Delay(function()
-                        unholsterDelayedLogic(stored, slot)
+                        unholsterDelayedLogic(stored, slot, hand)
                         coughpose:Delay(function() coughpose:EntFire("Enable") end, 0.2)
                     end, 0.01)
                 else
-                    unholsterDelayedLogic(stored, slot)
+                    unholsterDelayedLogic(stored, slot, hand)
                 end
 
-                Player.PrimaryHand:FireHapticPulse(2)
+                hand:FireHapticPulse(2)
                 break
             end
         end
     end
 end
 
-local inputUnholsterID
-
 ---Updates the input callbacks using the current settings.
 function BodyHolsters:UpdateControllerInputs()
-    Input:StopListening(inputUnholsterID)
-    if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-        inputUnholsterID = Input:ListenToAnalog("up", 2, EasyConvars:GetInt("body_holsters_unholster_action"), EasyConvars:GetFloat("body_holsters_unholster_grip_amount"), inputUnholsterCallback)
-    else
-        inputUnholsterID = Input:ListenToButton("press", 2, EasyConvars:GetInt("body_holsters_unholster_action"), 1, inputUnholsterCallback)
+    Input:StopListeningByContext(self)
+
+    local handKind = InputHandPrimary
+    if dualWieldMode then
+        handKind = InputHandBoth
     end
 
-    Input:StopListening(inputHolsterID)
-    -- inputHolsterID = Input:ListenToAnalog("down", 2, ANALOG_INPUT_HAND_CURL, EasyConvars:GetFloat("body_holsters_holster_ungrip_amount"), inputHolsterCallback)
-    if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-        inputHolsterID = Input:ListenToAnalog("down", 2, EasyConvars:GetInt("body_holsters_holster_action"), EasyConvars:GetFloat("body_holsters_holster_ungrip_amount"), inputHolsterCallback)
+    if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
+        Input:ListenToAnalog("up", handKind, EasyConvars:GetInt("body_holsters_unholster_action"), EasyConvars:GetFloat("body_holsters_unholster_grip_amount"), inputUnholsterCallback, self)
     else
-        inputHolsterID = Input:ListenToButton("press", 2, EasyConvars:GetInt("body_holsters_holster_action"), 1, inputHolsterCallback)
+        Input:ListenToButton("press", handKind, EasyConvars:GetInt("body_holsters_unholster_action"), 1, inputUnholsterCallback, self)
+    end
+
+    if EasyConvars:GetBool("body_holsters_holster_is_analog") then
+        Input:ListenToAnalog("down", handKind, EasyConvars:GetInt("body_holsters_holster_action"), EasyConvars:GetFloat("body_holsters_holster_ungrip_amount"), inputHolsterCallback, self)
+    else
+        Input:ListenToButton("press", handKind, EasyConvars:GetInt("body_holsters_holster_action"), 1, inputHolsterCallback, self)
     end
 end
 
-local handWithinSlot = false
+---Tracks if a hand is in a holster slot.
+---@type table<CPropVRHand, boolean>
+local handsWithinSlot = {}
+
+---Tracks if the backpack is disabled.
+---@type boolean
+local backpackDisabledFlag = false
+
 ---Main think function for providing haptic feedback.
 ---@return number
 local function playerHolsterThink()
     lastThinkTime = Time()
 
-    -- Notify hand within slot
-    local slot = getNearestSlots(getHandPosition())[1]
-    if slot ~= nil
-        and (BodyHolsters:CanStoreInSlot(slot, Player:GetWeapon()) or (Player:GetWeapon() == nil and slot.storedWeapon ~= nil))
-    then
-        if handWithinSlot == false then
-            handWithinSlot = true
-            Player.PrimaryHand:FireHapticPulse(1)
-            if slot.storedWeapon and Player.PrimaryHand.ItemHeld == nil then
-                if slot.disableBackpack then
-                    BodyHolsters:DisableBackpack()
+    local hands = {Player.PrimaryHand}
+    if dualWieldMode then
+        table.insert(hands, Player.SecondaryHand)
+    end
+
+    local anyHandInDisableSlot = false
+
+    for _, hand in ipairs(hands) do
+        -- Only check the first nearest slot
+        local slot = getNearestSlots(getHandPosition(hand), hand)[1]
+        if slot ~= nil then
+            local weapon = getWeaponFromHand(hand)
+
+            -- Vibrate if a weapon can be holstered or unholstered
+            if (BodyHolsters:CanStoreInSlot(slot, weapon)
+            or (hand.ItemHeld == nil and slot.storedWeapon ~= nil and slot.storedWeaponHand == hand))
+            then
+                if not handsWithinSlot[hand] then
+                    handsWithinSlot[hand] = true
+                    hand:FireHapticPulse(1)
                 end
+
+                if slot.storedWeapon and hand.ItemHeld == nil and slot.disableBackpack then
+                    anyHandInDisableSlot = true
+                    if not backpackDisabledFlag then
+                        backpackDisabledFlag = true
+                        BodyHolsters:DisableBackpack()
+                    end
+                end
+            elseif handsWithinSlot[hand] then
+                handsWithinSlot[hand] = false
+                -- BodyHolsters:EnableBackpack()
+            end
+        else
+            if handsWithinSlot[hand] then
+                handsWithinSlot[hand] = false
             end
         end
-    elseif handWithinSlot == true then
-        handWithinSlot = false
+    end
+
+    if not anyHandInDisableSlot and backpackDisabledFlag then
+        backpackDisabledFlag = false
         BodyHolsters:EnableBackpack()
     end
+
     return 0.1
 end
+
+---Backpack equipping/unequipping entities for different player equipment.
 
 ---@type EntityHandle?
 local equipDisableBackpack
@@ -929,6 +1015,9 @@ local equipDisableBackpackWrist
 ---@type EntityHandle?
 local equipEnableBackpackWrist
 
+---
+---Disables the player's backpack without changing their equipment.
+---
 function BodyHolsters:DisableBackpack()
     if equipDisableBackpack and equipDisableBackpackWrist and Player:GetBackpack() then
         if Player:HasItemHolder() then
@@ -939,6 +1028,9 @@ function BodyHolsters:DisableBackpack()
     end
 end
 
+---
+---Enables the player's backpack without changing their equipment.
+---
 function BodyHolsters:EnableBackpack()
     if equipEnableBackpack and equipEnableBackpackWrist and Player:GetBackpack() then
         -- Delay is required to stop grabbing magazine at the same time
@@ -949,8 +1041,6 @@ function BodyHolsters:EnableBackpack()
         end
     end
 end
-
-local debug = true
 
 local EQUIP_BACKPACK_KEYS = {
     classname = "info_hlvr_equip_player",
@@ -965,6 +1055,13 @@ local EQUIP_BACKPACK_KEYS = {
 ListenToPlayerEvent("player_activate", function()
     for _, slot in ipairs(BodyHolsters.slots) do
         slot.storedWeapon = Player:LoadEntity("BodyHolster_"..slot.name)
+
+        local handID = Player:LoadNumber("BodyHolster_"..slot.name.."_hand")
+        if handID then
+            -- hmd should exist by this point after a game load
+            slot.storedWeaponHand = Player.HMDAvatar:GetVRHand(handID)
+        end
+
         if slot.storedWeapon then
             slot.storedWeapon:SetParent(nil, "")
         end
@@ -982,7 +1079,7 @@ ListenToPlayerEvent("player_activate", function()
     end
 end)
 
-ListenToPlayerEvent("vr_player_ready", function (params)
+ListenToPlayerEvent("vr_player_ready", function (event)
 
     equipDisableBackpack = Entities:FindByName(nil, "body_holsters_equipDisableBackpack")
     if not equipDisableBackpack then
