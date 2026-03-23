@@ -8,148 +8,72 @@ local getWeaponFromHand = util.getWeaponFromHand
 local unequipWeapon = util.unequipWeapon
 local equipWeapon = util.equipWeapon
 local enableAllRenderingForWeapon = util.enableAllRenderingForWeapon
+local disableAllRenderingForWeapon = util.disableAllRenderingForWeapon
+local unparentHolsteredWeapons = util.unparentHolsteredWeapons
+local isPlayerBodyEnabled = util.isPlayerBodyEnabled
 
-local function convarUpdateController()
-    BodyHolsters:UpdateControllerInputs()
+local lastPlayerBody = nil
+
+---Gets the current player body.
+---@return EntityHandle?
+local function getPlayerBody()
+    local body = Entities:FindByName(nil, "player_body_model")
+
+    if not IsValidEntity(body) then
+        return nil
+    end
+
+    -- if lastPlayerBody ~= body then
+    --     print("new player body")
+    --     lastPlayerBody = body
+    --     -- -- lastPlayerBody:RedirectOutputFunc("OnKilled", function()
+    --     -- -- local root = Entities:FindByName(nil, "player_body_anchor")
+    --     -- lastPlayerBody:GetOrCreatePrivateScriptScope().UpdateOnRemove = function()
+    --     -- -- root:GetOrCreatePrivateScriptScope().UpdateOnRemove = function()
+    --     --     for k,v in pairs(body:GetChildren()) do
+    --     --         print(v:GetClassname(), v:IsNull())
+    --     --         v:SetParent(Player, nil)
+    --     --     end
+    --     --     print("UPDATE ON REMOVE PLAYER BODY")
+    --     --     unparentHolsteredWeapons()
+    --     --     -- BodyHolsters:UpdateHolsteredWeapons()
+    --     -- end
+    -- end
+
+    return body
 end
 
----Used to test other controller value types without actually having the controller
-local function getVRControllerType()
-    if IsInToolsMode() then
-        -- return VR_CONTROLLER_TYPE_KNUCKLES
-        -- return VR_CONTROLLER_TYPE_RIFT_S
-        -- return VR_CONTROLLER_TYPE_VIVE
-        return Player:GetVRControllerType()
-    else
-        return Player:GetVRControllerType()
-    end
+function PlayerBodyKillHook()
+    print("KILL HOOK")
+    -- unparentHolsteredWeapons()
+    -- local default = Player:GetBackpack() or Player.HMDAvatar or Player
+    BodyHolsters:RemoveHolsterEntity(getPlayerBody)
+    BodyHolsters:SetSlotsType(nil)
+    BodyHolsters:ClearWeaponSaveData()
+    -- print()
+    -- for _, slot in ipairs(BodyHolsters.slots) do
+    --     print(slot.name, entstr(slot.storedWeapon))
+    -- end
+    -- print()
+    BodyHolsters:UpdateHolsteredWeapons()
+    -- Player:Delay(function()
+    --     -- Hopefully new body exists by now
+    --     -- BodyHolsters:SetSlotsType("player_body")
+    --     -- BodyHolsters:UpdateHolsteredWeapons()
+    -- end, 1.5)
+    print("Does weapon still exist?", entstr(Player:LoadEntity("BodyHolster_chest", nil)))
+    Player:SetContextThink("WaitForNewBody", function()
+        if not IsValidEntity(getPlayerBody()) then
+            return 0.2
+        end
+        BodyHolsters:AddHolsterEntity(getPlayerBody)
+        BodyHolsters:SetSlotsType("player_body")
+        BodyHolsters:UpdateHolsteredWeapons()
+        return nil
+    end, 1.0)
 end
 
-EasyConvars:RegisterConvar("body_holsters_visible_weapons", "0", "Weapons are visibly attached to the player body.", 0)
-EasyConvars:SetPersistent("body_holsters_visible_weapons", true)
-
-EasyConvars:RegisterConvar("body_holsters_increase_offhand_side_radius", "1", "Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.", 0)
-EasyConvars:SetPersistent("body_holsters_increase_offhand_side_radius", true)
-
-EasyConvars:RegisterConvar("body_holsters_allow_multitool", "0", "Multitool is allowed to be holstered.", 0)
-EasyConvars:SetPersistent("body_holsters_allow_multitool", true)
-
-EasyConvars:RegisterConvar("body_holsters_unholster_grip_amount", 1.0, "[0-1] value for how much the controller must be gripped to unholster a weapon (only applicable if body_holsters_unholster_is_analog is 1)", 0, convarUpdateController)
-EasyConvars:SetPersistent("body_holsters_unholster_grip_amount", true)
-
-EasyConvars:RegisterConvar("body_holsters_holster_ungrip_amount", 0.1, "[0-1] value for how much the controller must be ungripped to holster a weapon (only applicable if body_holsters_holster_is_analog is 1)", 0, convarUpdateController)
-EasyConvars:SetPersistent("body_holsters_holster_ungrip_amount", true)
-
-
-EasyConvars:RegisterConvar("body_holsters_use_procedural_angles", "0", "Visible weapons will use the angle of the weapon when holstered.", 0)
-EasyConvars:SetPersistent("body_holsters_use_procedural_angles", true)
-
-
-EasyConvars:RegisterConvar("body_holsters_holster_is_analog", function()
-    -- Vive doesn't have analog grip for grabbing apparently, so it will use button above touchpad (slide release)
-    if getVRControllerType() == VR_CONTROLLER_TYPE_VIVE then
-        return false
-    else
-        return true
-    end
-end, "Whether analog actions should be used instead of digital actions for holstering.", 0,
--- Main callback (also display)
-function (newValue, prevValue)
-    if truthy(newValue) then
-        Msg("Holstering is using analog actions.\n")
-    else
-        Msg("Holstering is using digital actions.\n")
-    end
-end)
-EasyConvars:SetPersistent("body_holsters_holster_is_analog", true)
-
-
-EasyConvars:RegisterConvar("body_holsters_holster_action", ANALOG_INPUT_HAND_CURL, "The digital or analog action for holstering.", 0,
--- Main callback (also display)
-function (newValue, prevValue)
-    convarUpdateController()
-    if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-        Msg("Holster analog action is now '" .. Input:GetAnalogDescription(tonumber(newValue)) .. "'\n")
-    else
-        Msg("Holster digital action is now '" .. Input:GetButtonDescription(tonumber(newValue)) .. "'\n")
-    end
-end)
-EasyConvars:SetPersistent("body_holsters_holster_action", true)
-
-
-EasyConvars:RegisterConvar("body_holsters_unholster_is_analog", true, "Whether analog actions should be used instead of digital actions for unholstering", 0,
--- Main callback (also display)
-function (newValue, prevValue)
-    if truthy(newValue) then
-        Msg("Unholstering is now using analog actions.\n")
-    else
-        Msg("Unholstering is now using digital actions.\n")
-    end
-end)
-EasyConvars:SetPersistent("body_holsters_unholster_is_analog", true)
-
-
-EasyConvars:RegisterConvar("body_holsters_unholster_action", function()
-    if getVRControllerType() == VR_CONTROLLER_TYPE_KNUCKLES then
-        return ANALOG_INPUT_SQUEEZE_XEN_GRENADE
-    else
-        return ANALOG_INPUT_HAND_CURL
-    end
-end, "The digital or analog action for unholstering", 0,
--- Main callback (also display)
-function (newValue, prevValue)
-    convarUpdateController()
-    if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-        Msg("Unholster analog action is now '" .. Input:GetAnalogDescription(tonumber(newValue)) .. "'\n")
-    else
-        Msg("Unholster digital action is now '" .. Input:GetButtonDescription(tonumber(newValue)) .. "'\n")
-    end
-end)
-EasyConvars:SetPersistent("body_holsters_unholster_action", true)
-
-EasyConvars:RegisterConvar("body_holsters_use_actual_weapons", true, "If the actual weapon entities should be holstered for accurate display", 0)
-EasyConvars:SetPersistent("body_holsters_use_actual_weapons", true)
-
-EasyConvars:RegisterConvar("body_holsters_animate", true, "If holstered weapons should animate to their position", 0)
-EasyConvars:SetPersistent("body_holsters_animate", true)
-
-
----All convar work that needs to be done after convars have finished setting up
----Extra checks need to happen here to make sure we don't overwrite user's custom values
-EasyConvars:AddPostInitializer(function()
-
-    local controllerType = getVRControllerType()
-
-    -- Automatic holster actions
-    if not EasyConvars:WasChangedByUser("body_holsters_holster_action") then
-        if EasyConvars:GetBool("body_holsters_holster_is_analog") then
-            EasyConvars:SetInt("body_holsters_holster_action", ANALOG_INPUT_HAND_CURL)
-        else
-            -- Vive doesn't have analog grip for grabbing apparently, so it will use button above touchpad (slide release)
-            if controllerType == VR_CONTROLLER_TYPE_VIVE then
-                EasyConvars:SetInt("body_holsters_holster_action", DIGITAL_INPUT_SLIDE_RELEASE)
-            else
-                EasyConvars:SetInt("body_holsters_holster_action", DIGITAL_INPUT_USE_GRIP)
-            end
-        end
-    end
-
-    -- Automatic unholster actions
-    if not EasyConvars:WasChangedByUser("body_holsters_unholster_action") then
-        if EasyConvars:GetBool("body_holsters_unholster_is_analog") then
-            -- Index automatically gets squeeze analog
-            if controllerType == VR_CONTROLLER_TYPE_KNUCKLES then
-                EasyConvars:SetInt("body_holsters_unholster_action", ANALOG_INPUT_SQUEEZE_XEN_GRENADE)
-                EasyConvars:SetIfUnchanged("body_holsters_unholster_grip_amount", 0.5)
-            else
-                EasyConvars:SetInt("body_holsters_unholster_action", ANALOG_INPUT_HAND_CURL)
-            end
-        else
-            EasyConvars:SetInt("body_holsters_unholster_action", DIGITAL_INPUT_USE_GRIP)
-        end
-    end
-
-end)
+require "body_holsters.convars"
 
 require "alyxlib.controls.input"
 
@@ -236,6 +160,7 @@ local dualWieldMode = false
 ---Dual wield mode can't be disabled to avoid breaking other mods.
 ---
 function BodyHolsters:EnableDualWieldMode()
+    devprint("Body Holsters: Dual Wield Mode Enabled")
     dualWieldMode = true
     self:UpdateControllerInputs()
 end
@@ -258,139 +183,131 @@ BodyHolsters.offHandRadiusIncrease = 1.2
 
 ---@class BodyHolstersSlot
 ---@field name string # Name of the slot.
----@field offset Vector # Local offset from the main holster origin (usually the backpack).
----@field angles? QAngle # Local angles to use when parenting to the main holster object.
----@field radius number # Size of the slot sphere.
----@field storedWeapon? EntityHandle # Handle of the actual inventory weapon stored in the slot.
----@field storedWeaponHand? CPropVRHand # Handle of the hand that was holding the stored weapon.
----@field leftside boolean # Slot is on the left-hand side of the body.
----@field attachHandle? boolean # If true, weapon handle will align with the slot, otherwise center will be used.
----@field disableBackpack? boolean # If the backpack should be disabled when hand is inside this slot.
----@field flipangles? boolean # If the angles should be flipped for left hand.
+---@field rh_offset Vector # Local offset from the main holster origin (usually the backpack), for the right hand
+---@field rh_angles QAngle # Local angles to use when parenting to the main holster object, for the right hand
+---@field lh_offset? Vector # Local offset from the main holster origin (usually the backpack), for the left hand
+---@field lh_angles? QAngle # Local angles to use when parenting to the main holster object, for the left hand
+---@field attachment? string # Attachment name to use when parenting to the main holster object
+---@field radius number # Size of the slot sphere
+---@field storedWeapon? EntityHandle # Handle of the actual inventory weapon stored in the slot
+---@field storedWeaponHand? CPropVRHand # Handle of the hand that was holding the stored weapon
+---@field leftside boolean # Slot is on the left-hand side of the body
+---@field attachHandle? boolean # If true, weapon handle will align with the slot, otherwise center will be used
+---@field disableBackpack? boolean # If the backpack should be disabled when hand is inside this slot
 
-local function leftHanded(a, b)
-    return Convars:GetBool("hlvr_left_hand_primary") and a or b
-end
-
-local rebuildSlots = function()
-return {
-    -- +x = forward
-    -- -x = backward
-    -- +y = right
-    -- -y = left
-    {
-        name = "left_hip",
-        offset = leftHanded(Vector(-4, 10, -25), Vector(-2, 6, -21)),
-        angles = leftHanded(QAngle(90, 0, 0), QAngle(55, 135, 0)),
-        radius = 7,
-        storedWeapon = nil,
-        leftside = true,
-        attachHandle = true,
-        flipangles = false,
-    },
-    {
-        name = "right_hip",
-        offset = leftHanded(Vector(-2, -6, -21), Vector(-4, -10, -25)),
-        angles = leftHanded(QAngle(55, 225, 0), QAngle(90, 0, 0)),
-        radius = 7,
-        leftside = false,
-        attachHandle = true,
-        flipangles = false,
-    },
-
-    {
-        name = "left_underarm",
-        offset = Vector(-1.5, 8, -12),
-        angles = QAngle(35, 180, 0),
-        radius = 5.5,
-        leftside = true,
-        attachHandle = true,
-        flipangles = false,
-    },
-    {
-        name = "right_underarm",
-        offset = Vector(-1.5, -8, -12),
-        angles = QAngle(35, 180, 0),
-        radius = 5.5,
-        leftside = false,
-        attachHandle = true,
-        flipangles = false,
-    },
-
-    {
-        name = "left_shoulder",
-        offset = Vector(-8.2, 5, -2),
-        angles = QAngle(90, 90, 0),
-        radius = 10,
-        leftside = true,
-        disableBackpack = true,
-        attachHandle = true,
-        flipangles = false,
-    },
-    {
-        name = "right_shoulder",
-        offset = Vector(-8.2, -5, -2),
-        angles = QAngle(90, -90, 0),
-        radius = 10,
-        leftside = false,
-        disableBackpack = true,
-        attachHandle = true,
-        flipangles = false,
-    },
-
-    {
-        name = "chest",
-        offset = Vector(1.5, 0, -12),
-        angles = leftHanded(QAngle(35, -90, 0), QAngle(35, 90, 0)),
-        radius = 4.5,
-        leftside = false,
-        attachHandle = false,
-        flipangles = true,
-    },
-}
-end
 
 ---@type BodyHolstersSlot[]
-BodyHolsters.slots = rebuildSlots()
+BodyHolsters.slots = {}
 
-ListenToPlayerEvent("primary_hand_changed", function()
-    BodyHolsters.slots = rebuildSlots()
-end)
+---@type fun():BodyHolstersSlot[]
+local rebuildSlots
 
-Convars:RegisterCommand("body_holsters_slot", function (_, name, x, y, z, radius)
-    -- Printing all slots if no name given
-    if name == nil then
-        for index, slot in ipairs(BodyHolsters.slots) do
-            Msg(slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius .. "\n")
+local function merge(table1, table2)
+    print()
+    local result = vlua.clone(table2)
+    for key, val in pairs(table1) do
+        print("replacing " .. key .. " with " .. tostring(val))
+        result[key] = val
+    end
+    print()
+    return result
+end
+
+---comment
+---@param list1 BodyHolstersSlot[]
+---@param list2 BodyHolstersSlot[]
+local function mergeSlotList(list1, list2)
+    -- for ind, slot in ipairs(list2) do
+    --     print(ind..":")
+    --     -- list1[key] = merge(list1[key] or {}, slot)
+    --     if list1[ind] == nil then
+    --         list1[ind] = {}
+    --     end
+
+    --     for key, val in pairs(slot) do
+    --         print("replacing " .. key .. " with " .. tostring(val))
+    --         list1[ind][key] = val
+    --     end
+    -- end
+    -- return list1
+
+    for ind, slot in ipairs(list2) do
+        if list1[ind] ~= nil and list1[ind].name == slot.name then
+            list2[ind].storedWeapon = list1[ind].storedWeapon
+            list2[ind].storedWeaponHand = list1[ind].storedWeaponHand
         end
-        return
+    end
+    return list2
+end
+
+---@param scriptName? string|"default"|"new_test"|"player_body"
+function BodyHolsters:SetSlotsType(scriptName)
+    if scriptName == nil then
+        -- scriptName = "default"
+        -- replace default with test_new when all sorted
+        scriptName = "new_test"
+    end
+    rebuildSlots = require("body_holsters.slots." .. scriptName)
+    BodyHolsters.slots = mergeSlotList(BodyHolsters.slots, rebuildSlots())
+end
+
+---@type (EntityHandle|fun():EntityHandle?)[]
+BodyHolsters.holsterEnts = {}
+
+---
+---@param entity EntityHandle|fun():EntityHandle?
+function BodyHolsters:AddHolsterEntity(entity)
+    table.insert(self.holsterEnts, 1, entity)
+end
+
+---
+---@param entity EntityHandle|fun():EntityHandle?
+function BodyHolsters:RemoveHolsterEntity(entity)
+    for i, holsterEnt in ipairs(self.holsterEnts) do
+        if holsterEnt == entity then
+            table.remove(self.holsterEnts, i)
+            break
+        end
+    end
+end
+
+---
+---Gets the best holster entity to use.
+---
+---@return EntityHandle
+function BodyHolsters:GetBestHolsterEnt()
+    if self.holsterEnts[1] ~= nil then
+        for _, holsterEnt in ipairs(self.holsterEnts) do
+            if type(holsterEnt) == "function" then
+                holsterEnt = holsterEnt()
+            end
+
+            if IsValidEntity(holsterEnt) then
+                return holsterEnt
+            end
+        end
     end
 
-    local slot = BodyHolsters:GetSlot(name)
-    if slot == nil then
-        Msg("No body holster slot with name '"..name.."'")
-        return
-    end
+    return Player:GetBackpack() or Player.HMDAvatar or Player
+end
 
-    -- Printing specific slot if no values given
-    if x == nil then
-        Msg(slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius)
-        return
-    end
+-- if isPlayerBodyEnabled() then
+--     rebuildSlots = require("body_holsters.slots.player_body")
+-- else
+--     rebuildSlots = require("body_holsters.slots.new_test")
+-- end
+BodyHolsters:SetSlotsType(nil)
 
-    -- Modifying
+if isPlayerBodyEnabled() then
+    print("Body Holsters detected Ritsuka's player body addon... enabling support")
+    BodyHolsters:AddHolsterEntity(getPlayerBody)
+    BodyHolsters:SetSlotsType("player_body")
+end
 
-    x = tonumber(x) or slot.offset.x
-    y = tonumber(y) or slot.offset.y
-    z = tonumber(z) or slot.offset.z
-    radius = tonumber(radius) or slot.radius
-
-    slot.offset = Vector(x, y, z)
-    slot.radius = radius
-
-    Msg("Modified " .. slot.name .. " " .. slot.offset.x .. " " .. slot.offset.y .. " " .. slot.offset.z .. " " .. slot.radius)
-
-end, "", 0)
+---@NOTE This shouldn't be needed anymore with new rh_offset, lh_offset
+-- ListenToPlayerEvent("primary_hand_changed", function()
+--     BodyHolsters.slots = rebuildSlots()
+-- end)
 
 ---Get a slot table by its name.
 ---@param name string
@@ -404,23 +321,33 @@ function BodyHolsters:GetSlot(name)
     return nil
 end
 
+---Checks if a slot is on the opposite side of the body from the hand.
+---@param slot BodyHolstersSlot
+---@param hand? CPropVRHand
+local function isSlotOnOppositeSide(slot, hand)
+    return slot.leftside ~= (hand == Player.LeftHand)
+end
+
 ---Get holstered weapon clone based on the weapon class it represents.
 ---@param weapon EntityHandle
 ---@return EntityHandle?
-function GetHolsteredWeaponClone(weapon)
+local function getHolsteredWeaponClone(weapon)
     return Entities:FindByName(nil, weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone")
 end
 
----Gets data related to holstering, usually to do with the backpack.
----@return EntityHandle holsterEnt # The entity used for holstering.
-local function getHolsterEnt()
-    local backpack = Player:GetBackpack()
-    if backpack then
-        return backpack
-    else
-        return Player.HMDAvatar
-    end
-end
+-- ---Gets data related to holstering, usually to do with the backpack.
+-- ---@return EntityHandle holsterEnt # The entity used for holstering.
+-- local function getHolsterEnt()
+--     local default
+
+--     if isPlayerBodyEnabled() then
+--         default = getPlayerBody()
+--     else
+--         default = Player:GetBackpack()
+--     end
+
+--     return default or Player.HMDAvatar or Player
+-- end
 
 ---
 ---Gets the radius a slot should be based on its side
@@ -452,7 +379,7 @@ local function getNearestSlots(pos, hand)
 
     local slots = {}
     for _, slot in ipairs(BodyHolsters.slots) do
-        local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
+        local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot, nil, hand)
 
         local distance = VectorDistance(slotOrigin, pos)
 
@@ -489,11 +416,11 @@ local function holsterDebugThink()
         debugoverlay:Sphere(handOrigin, 0.5, 255,255,255,255,true,0)
 
         for i, slot in ipairs(BodyHolsters.slots) do
-            local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot)
+            local slotOrigin = BodyHolsters:GetSlotWorldOrigin(slot, nil, hand)
             local r,g,b = 255,255,255
             local weapon = getWeaponFromHand(hand)
             local radius = getDynamicSlotRadius(slot, hand)
-            if slot.storedWeapon ~= nil then
+            if slot.storedWeapon ~= nil and IsValidEntity(slot.storedWeapon) then
                 debugoverlay:Sphere(slot.storedWeapon:GetCenter(), 2, 0, 255, 255, 255, false, 0)
                 if weapon == nil and hand.ItemHeld == nil and VectorDistance(slotOrigin, handOrigin) <= radius then
                     -- Slot full and can be grabbed
@@ -541,19 +468,40 @@ function BodyHolsters:CanStoreInSlot(slot, weapon)
     return false
 end
 
-local function getSlotLocalOriginAdjusted(slot, holsterEnt)
-    holsterEnt = holsterEnt or getHolsterEnt()
-    local lookZ = Player:EyeAngles():Forward().z
-    local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
-    return slot.offset - Vector(adjust, 0, -adjust)
+-- ---@param localOrigin Vector
+-- ---@param holsterEnt? EntityHandle
+-- ---@return Vector
+-- local function getSlotLocalOriginAdjusted(localOrigin, holsterEnt)
+--     holsterEnt = holsterEnt or getHolsterEnt()
+--     local lookZ = Player:EyeAngles():Forward().z
+--     local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
+--     return localOrigin - Vector(adjust, 0, -adjust)
+-- end
+
+---
+---@param slot BodyHolstersSlot
+---@param hand CPropVRHand
+---@return Vector
+local function getSlotOffsetForHand(slot, hand)
+    if hand == Player.LeftHand then
+        return slot.lh_offset or slot.rh_offset
+    else
+        return slot.rh_offset
+    end
 end
 
 ---@param slot BodyHolstersSlot
 ---@param holsterEnt? EntityHandle
+---@param hand? CPropVRHand
 ---@return Vector
-function BodyHolsters:GetSlotWorldOrigin(slot, holsterEnt)
-    holsterEnt = holsterEnt or getHolsterEnt()
-    local localOrigin = getSlotLocalOriginAdjusted(slot, holsterEnt)
+function BodyHolsters:GetSlotWorldOrigin(slot, holsterEnt, hand)
+    holsterEnt = holsterEnt or self:GetBestHolsterEnt()
+    -- local localOrigin = getSlotLocalOriginAdjusted(slot, holsterEnt)
+    local localOrigin = getSlotOffsetForHand(slot, hand)
+    if slot.attachment then
+        local attachmentLocal = holsterEnt:TransformPointWorldToEntity(holsterEnt:GetAttachmentNameOrigin(slot.attachment))
+        localOrigin = attachmentLocal + localOrigin
+    end
     return holsterEnt:TransformPointEntityToWorld(localOrigin)
 end
 
@@ -561,10 +509,17 @@ end
 ---@param weapon EntityHandle # The weapon to get the position for
 ---@param slot BodyHolstersSlot # The holster slot where the weapon is being holstered
 ---@param holsterEnt? EntityHandle # The entity the weapon will be parented to
+---@param hand? CPropVRHand # The hand holstering the weapon
 ---@return Vector # The local origin relative to the holster ent where `weapon` should be
-local function getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
-    holsterEnt = holsterEnt or getHolsterEnt()
-    local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
+local function getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt, hand)
+    holsterEnt = holsterEnt or BodyHolsters:GetBestHolsterEnt()
+    -- local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
+    local holsterLocalOffset = getSlotOffsetForHand(slot, hand)
+
+    if slot.attachment then
+        return holsterLocalOffset
+    end
+
     local desiredWorldPos = holsterEnt:TransformPointEntityToWorld(holsterLocalOffset)
     local center = slot.attachHandle and
         weapon:GetAttachmentNameOrigin("vr_controller_root") or
@@ -579,24 +534,24 @@ end
 ---@param hand? CPropVRHand # The hand the weapon is holstered in
 ---@return QAngle # The local angles relative to the holster ent where `weapon` should be angled
 local function getDesiredHolsteredWeaponLocalAngles(weapon, slot, hand)
-    if slot.angles and not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
+    if not EasyConvars:GetBool("body_holsters_use_procedural_angles") then
         hand = hand or Player.PrimaryHand
 
-        if hand == Player.LeftHand and slot.flipangles then
-            return slot.angles + QAngle(0, 180, 0)
+        if hand == Player.RightHand then
+            return slot.rh_angles or weapon:GetLocalAngles()
+        else
+            return slot.lh_angles or slot.rh_angles or weapon:GetLocalAngles()
         end
-
-        return slot.angles
     end
 
     return weapon:GetLocalAngles()
 end
 
-local function unparentHolsteredWeapons()
+function BodyHolsters:ClearWeaponSaveData()
     for _, slot in ipairs(BodyHolsters.slots) do
-        local weapon = slot.storedWeapon
-        if weapon then
-            weapon:SetParent(nil, nil)
+        if IsValidEntity(slot.storedWeapon) then
+            slot.storedWeapon:SaveVector("holsteredLocalOrigin", nil)
+            slot.storedWeapon:SaveQAngle("holsteredLocalAngles", nil)
         end
     end
 end
@@ -609,7 +564,8 @@ end
 ---@param slot BodyHolstersSlot # The holster slot to update
 ---@param holsterEnt? EntityHandle # Optional entity the weapon will be parented to
 function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
-    holsterEnt = holsterEnt or getHolsterEnt()
+    holsterEnt = holsterEnt or self:GetBestHolsterEnt()
+    -- print('trying update with holsterEnt', entstr(holsterEnt))
 
     local weapon = slot.storedWeapon
     if not weapon then return end
@@ -622,9 +578,11 @@ function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
 
     if not isEquipped then
         enableAllRenderingForWeapon(weapon)
-        weapon:SetParent(holsterEnt, nil)
-        local localAngles = weapon:LoadQAngle("holsteredLocalAngles") or getDesiredHolsteredWeaponLocalAngles(weapon, slot, slot.storedWeaponHand)
-        local localOrigin = weapon:LoadVector("holsteredLocalOrigin") or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt)
+        weapon:SetParent(holsterEnt, slot.attachment)
+        local localAngles = weapon:LoadQAngle("holsteredLocalAngles")
+            or getDesiredHolsteredWeaponLocalAngles(weapon, slot, slot.storedWeaponHand)
+        local localOrigin = weapon:LoadVector("holsteredLocalOrigin")
+            or getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt, slot.storedWeaponHand)
         weapon:SetLocalQAngle(localAngles)
         weapon:SetLocalOrigin(localOrigin)
     end
@@ -634,8 +592,10 @@ end
 ---Updates all holstered weapons to be visible and attached where they should be.
 ---This is used to fix 'actual weapon' issues.
 ---
-function BodyHolsters:UpdateHolsteredWeapons()
-    local holsterEnt = getHolsterEnt()
+---@param holsterEnt? EntityHandle # Optional entity the weapon will be parented to
+function BodyHolsters:UpdateHolsteredWeapons(holsterEnt)
+    holsterEnt = holsterEnt or self:GetBestHolsterEnt()
+    -- print("new holsterEnt", entstr(holsterEnt))
     for _, slot in ipairs(BodyHolsters.slots) do
         self:UpdateHolsteredSlot(slot, holsterEnt)
     end
@@ -657,7 +617,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, hand, silent)
     hand = hand or Player.PrimaryHand
 
     -- Destroy old clone if reholstering from a weapon switch
-    local existingWeaponClone = GetHolsteredWeaponClone(weapon)
+    local existingWeaponClone = getHolsteredWeaponClone(weapon)
     if existingWeaponClone then
         existingWeaponClone:Kill()
     end
@@ -665,7 +625,7 @@ function BodyHolsters:HolsterWeapon(slot, weapon, hand, silent)
     -- Create new clone if enabled
     if EasyConvars:GetBool("body_holsters_visible_weapons") then
         local weaponClone = weapon
-        local holsterEnt = getHolsterEnt()
+        local holsterEnt = self:GetBestHolsterEnt()
 
         if not EasyConvars:GetBool("body_holsters_use_actual_weapons") then
             weaponClone = cloneWeapon(weapon, nil, { targetname = weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone" })
@@ -673,13 +633,15 @@ function BodyHolsters:HolsterWeapon(slot, weapon, hand, silent)
             enableAllRenderingForWeapon(weaponClone)
         end
 
-        weaponClone:SetParent(holsterEnt, nil)
+        weaponClone:SetParent(holsterEnt, slot.attachment)
 
         local desiredLocalAngles = getDesiredHolsteredWeaponLocalAngles(weaponClone, slot, hand)
-        weaponClone:SaveQAngle("holsteredLocalAngles", desiredLocalAngles)
+        local desiredLocalOrigin = getDesiredHolsteredWeaponLocalOrigin(weaponClone, slot, holsterEnt, hand)
 
-        local desiredLocalOrigin = getDesiredHolsteredWeaponLocalOrigin(weaponClone, slot, holsterEnt)
-        weaponClone:SaveVector("holsteredLocalOrigin", desiredLocalOrigin)
+        if EasyConvars:GetBool("body_holsters_use_procedural_angles") then
+            weaponClone:SaveQAngle("holsteredLocalAngles", desiredLocalAngles)
+            weaponClone:SaveVector("holsteredLocalOrigin", desiredLocalOrigin)
+        end
 
         if EasyConvars:GetBool("body_holsters_animate") then
 
@@ -745,7 +707,7 @@ function BodyHolsters:UnholsterSlot(slot, silent)
 
     weapon:SetParent(nil, nil)
 
-    local clone = GetHolsteredWeaponClone(weapon)
+    local clone = getHolsteredWeaponClone(weapon)
     if clone then
         clone:Kill()
     -- Warn only if clones should exist
@@ -1059,7 +1021,11 @@ ListenToPlayerEvent("player_activate", function()
         local handID = Player:LoadNumber("BodyHolster_"..slot.name.."_hand")
         if handID then
             -- hmd should exist by this point after a game load
-            slot.storedWeaponHand = Player.HMDAvatar:GetVRHand(handID)
+            if not Player:GetHMDAvatar() then
+                print("HMDAvatar doesn't exist when loading holstered weapon! this is weird!")
+            else
+                slot.storedWeaponHand = Player:GetHMDAvatar():GetVRHand(handID)
+            end
         end
 
         if slot.storedWeapon then
@@ -1071,6 +1037,7 @@ ListenToPlayerEvent("player_activate", function()
     for _, slot in ipairs(BodyHolsters.slots) do
         if slot.storedWeapon ~= nil then
             if slot.storedWeapon ~= Player:GetWeapon() then
+                print("updating holstered weapon for slot " .. slot.name .. " after load")
                 BodyHolsters:UpdateHolsteredSlot(slot)
             else
                 slot.storedWeapon:SetParent(nil, nil)
@@ -1079,6 +1046,7 @@ ListenToPlayerEvent("player_activate", function()
     end
 end)
 
+---@param event PlayerEventVRPlayerReady
 ListenToPlayerEvent("vr_player_ready", function (event)
 
     equipDisableBackpack = Entities:FindByName(nil, "body_holsters_equipDisableBackpack")
@@ -1105,8 +1073,27 @@ ListenToPlayerEvent("vr_player_ready", function (event)
     --     SendToConsole("body_holsters_debug 1")
     -- end
 
+    local function hideHolsteredWeapons()
+        for _, slot in ipairs(BodyHolsters.slots) do
+            if slot.storedWeapon then
+                disableAllRenderingForWeapon(slot.storedWeapon)
+                slot.storedWeapon:SetParent(nil, nil)
+            end
+        end
+    end
+
     Player:Delay(function ()
         BodyHolsters:UpdateControllerInputs()
+
+        -- Transition causes guns to parent to backpack and appear inside eyes
+        -- This hides them until body is loaded
+        if isPlayerBodyEnabled() and event.type == "transition" then
+            hideHolsteredWeapons()
+            -- Body spawn delay seems to be about 0.7s
+            Player:Delay(function()
+                BodyHolsters:UpdateHolsteredWeapons()
+            end, 0.7)
+        end
     end)
 
     print("Body Holsters ".. version .." initialized...")

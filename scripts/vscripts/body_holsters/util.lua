@@ -149,6 +149,41 @@ local function enableAllRenderingForWeapon(ent)
     end
 end
 
+---
+---Disables rendering for an entity and all children.
+---
+---@param ent EntityHandle
+local function disableAllRenderingForWeapon(ent)
+    if not IsValidEntity(ent) then return end
+
+    ent:SetRenderingEnabled(false)
+    for child in ent:IterateChildren() do
+        child:SetRenderingEnabled(false)
+    end
+end
+
+---
+---Unparents all holstered weapons.
+---
+local function unparentHolsteredWeapons()
+    for _, slot in ipairs(BodyHolsters.slots) do
+        local weapon = slot.storedWeapon
+        if weapon ~= nil and IsValidEntity(weapon) then
+            weapon:SetParent(nil, nil)
+        end
+    end
+end
+
+---
+---Check if Ritsuka's player body addon is enabled.
+---
+---@return boolean
+local function isPlayerBodyEnabled()
+    return IsAddonEnabled("3581426521")
+        or IsAddonEnabled("player_body")
+        or IsInToolsMode() -- TODO: remove this for release
+end
+
 return {
     getHandPosition = getHandPosition,
     cloneWeapon = cloneWeapon,
@@ -157,4 +192,7 @@ return {
     unequipWeapon = unequipWeapon,
     equipWeapon = equipWeapon,
     enableAllRenderingForWeapon = enableAllRenderingForWeapon,
+    disableAllRenderingForWeapon = disableAllRenderingForWeapon,
+    unparentHolsteredWeapons = unparentHolsteredWeapons,
+    isPlayerBodyEnabled = isPlayerBodyEnabled
 }
