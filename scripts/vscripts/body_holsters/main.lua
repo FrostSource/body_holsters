@@ -23,45 +23,19 @@ local function getPlayerBody()
         return nil
     end
 
-    -- if lastPlayerBody ~= body then
-    --     print("new player body")
-    --     lastPlayerBody = body
-    --     -- -- lastPlayerBody:RedirectOutputFunc("OnKilled", function()
-    --     -- -- local root = Entities:FindByName(nil, "player_body_anchor")
-    --     -- lastPlayerBody:GetOrCreatePrivateScriptScope().UpdateOnRemove = function()
-    --     -- -- root:GetOrCreatePrivateScriptScope().UpdateOnRemove = function()
-    --     --     for k,v in pairs(body:GetChildren()) do
-    --     --         print(v:GetClassname(), v:IsNull())
-    --     --         v:SetParent(Player, nil)
-    --     --     end
-    --     --     print("UPDATE ON REMOVE PLAYER BODY")
-    --     --     unparentHolsteredWeapons()
-    --     --     -- BodyHolsters:UpdateHolsteredWeapons()
-    --     -- end
-    -- end
-
     return body
 end
 
 function PlayerBodyKillHook()
-    print("KILL HOOK")
-    -- unparentHolsteredWeapons()
-    -- local default = Player:GetBackpack() or Player.HMDAvatar or Player
+    -- print("KILL HOOK")
+
     BodyHolsters:RemoveHolsterEntity(getPlayerBody)
     BodyHolsters:SetSlotsType(nil)
     BodyHolsters:ClearWeaponSaveData()
-    -- print()
-    -- for _, slot in ipairs(BodyHolsters.slots) do
-    --     print(slot.name, entstr(slot.storedWeapon))
-    -- end
-    -- print()
+
     BodyHolsters:UpdateHolsteredWeapons()
-    -- Player:Delay(function()
-    --     -- Hopefully new body exists by now
-    --     -- BodyHolsters:SetSlotsType("player_body")
-    --     -- BodyHolsters:UpdateHolsteredWeapons()
-    -- end, 1.5)
-    print("Does weapon still exist?", entstr(Player:LoadEntity("BodyHolster_chest", nil)))
+    -- print("Does weapon still exist?", entstr(Player:LoadEntity("BodyHolster_chest", nil)))
+
     Player:SetContextThink("WaitForNewBody", function()
         if not IsValidEntity(getPlayerBody()) then
             return 0.2
@@ -202,35 +176,10 @@ BodyHolsters.slots = {}
 ---@type fun():BodyHolstersSlot[]
 local rebuildSlots
 
-local function merge(table1, table2)
-    print()
-    local result = vlua.clone(table2)
-    for key, val in pairs(table1) do
-        print("replacing " .. key .. " with " .. tostring(val))
-        result[key] = val
-    end
-    print()
-    return result
-end
-
----comment
+---Merges `list1` into `list2`.
 ---@param list1 BodyHolstersSlot[]
 ---@param list2 BodyHolstersSlot[]
 local function mergeSlotList(list1, list2)
-    -- for ind, slot in ipairs(list2) do
-    --     print(ind..":")
-    --     -- list1[key] = merge(list1[key] or {}, slot)
-    --     if list1[ind] == nil then
-    --         list1[ind] = {}
-    --     end
-
-    --     for key, val in pairs(slot) do
-    --         print("replacing " .. key .. " with " .. tostring(val))
-    --         list1[ind][key] = val
-    --     end
-    -- end
-    -- return list1
-
     for ind, slot in ipairs(list2) do
         if list1[ind] ~= nil and list1[ind].name == slot.name then
             list2[ind].storedWeapon = list1[ind].storedWeapon
@@ -291,11 +240,6 @@ function BodyHolsters:GetBestHolsterEnt()
     return Player:GetBackpack() or Player.HMDAvatar or Player
 end
 
--- if isPlayerBodyEnabled() then
---     rebuildSlots = require("body_holsters.slots.player_body")
--- else
---     rebuildSlots = require("body_holsters.slots.new_test")
--- end
 BodyHolsters:SetSlotsType(nil)
 
 if isPlayerBodyEnabled() then
@@ -303,11 +247,6 @@ if isPlayerBodyEnabled() then
     BodyHolsters:AddHolsterEntity(getPlayerBody)
     BodyHolsters:SetSlotsType("player_body")
 end
-
----@NOTE This shouldn't be needed anymore with new rh_offset, lh_offset
--- ListenToPlayerEvent("primary_hand_changed", function()
---     BodyHolsters.slots = rebuildSlots()
--- end)
 
 ---Get a slot table by its name.
 ---@param name string
@@ -334,20 +273,6 @@ end
 local function getHolsteredWeaponClone(weapon)
     return Entities:FindByName(nil, weapon:GetName() .. "_" .. weapon:GetClassname() .. "_clone")
 end
-
--- ---Gets data related to holstering, usually to do with the backpack.
--- ---@return EntityHandle holsterEnt # The entity used for holstering.
--- local function getHolsterEnt()
---     local default
-
---     if isPlayerBodyEnabled() then
---         default = getPlayerBody()
---     else
---         default = Player:GetBackpack()
---     end
-
---     return default or Player.HMDAvatar or Player
--- end
 
 ---
 ---Gets the radius a slot should be based on its side
@@ -468,16 +393,6 @@ function BodyHolsters:CanStoreInSlot(slot, weapon)
     return false
 end
 
--- ---@param localOrigin Vector
--- ---@param holsterEnt? EntityHandle
--- ---@return Vector
--- local function getSlotLocalOriginAdjusted(localOrigin, holsterEnt)
---     holsterEnt = holsterEnt or getHolsterEnt()
---     local lookZ = Player:EyeAngles():Forward().z
---     local adjust = RemapValClamped(lookZ, -1, 0, BodyHolsters.cameraForwardZSlotAdjustment, 0)
---     return localOrigin - Vector(adjust, 0, -adjust)
--- end
-
 ---
 ---@param slot BodyHolstersSlot
 ---@param hand CPropVRHand
@@ -496,7 +411,6 @@ end
 ---@return Vector
 function BodyHolsters:GetSlotWorldOrigin(slot, holsterEnt, hand)
     holsterEnt = holsterEnt or self:GetBestHolsterEnt()
-    -- local localOrigin = getSlotLocalOriginAdjusted(slot, holsterEnt)
     local localOrigin = getSlotOffsetForHand(slot, hand)
     if slot.attachment then
         local attachmentLocal = holsterEnt:TransformPointWorldToEntity(holsterEnt:GetAttachmentNameOrigin(slot.attachment))
@@ -513,7 +427,6 @@ end
 ---@return Vector # The local origin relative to the holster ent where `weapon` should be
 local function getDesiredHolsteredWeaponLocalOrigin(weapon, slot, holsterEnt, hand)
     holsterEnt = holsterEnt or BodyHolsters:GetBestHolsterEnt()
-    -- local holsterLocalOffset = getSlotLocalOriginAdjusted(slot, holsterEnt)
     local holsterLocalOffset = getSlotOffsetForHand(slot, hand)
 
     if slot.attachment then
@@ -1037,7 +950,7 @@ ListenToPlayerEvent("player_activate", function()
     for _, slot in ipairs(BodyHolsters.slots) do
         if slot.storedWeapon ~= nil then
             if slot.storedWeapon ~= Player:GetWeapon() then
-                print("updating holstered weapon for slot " .. slot.name .. " after load")
+                -- print("updating holstered weapon for slot " .. slot.name .. " after load")
                 BodyHolsters:UpdateHolsteredSlot(slot)
             else
                 slot.storedWeapon:SetParent(nil, nil)
