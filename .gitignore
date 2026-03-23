@@ -15,3 +15,23 @@ scripts/vscripts/game/gameinit.lua
 .vscode/vlua_snippets.code-snippets
 panorama/scripts/custom_game/panorama_lua.js
 panorama/scripts/custom_game/panoramadoc.js
+
+# Player body assets
+# Exist in repo directory for local testing
+
+particles/arms_alyx.vpcf
+particles/arms_gordon.vpcf
+maps/prefabs/player_body_alyx.vmap
+maps/prefabs/player_body_gordon.vmap
+maps/prefabs/player_body_init.vmap
+models/player_body_alyx.fbx
+models/player_body_gordon.fbx
+models/player_model_alyx_head.vmdl
+models/player_model_alyx.vmdl
+models/player_model_gordon_head.vmdl
+models/player_model_gordon.vmdl
+models/biped_standard/
+materials/player_body/
+animgraphs/player_body.vanmgrph
+scripts/vscripts/player_body_tracking.lua
+scripts/vscripts/redirect_damage_to_player.lua
