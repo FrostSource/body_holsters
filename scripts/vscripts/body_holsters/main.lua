@@ -499,7 +499,15 @@ function BodyHolsters:UpdateHolsteredSlot(slot, holsterEnt)
     end
 
     if not isEquipped then
-        enableAllRenderingForWeapon(weapon)
+        if EasyConvars:GetBool("body_holsters_visible_weapons") then
+            enableAllRenderingForWeapon(weapon)
+        else
+            disableAllRenderingForWeapon(weapon)
+            -- Weapon doesn't need to be visibly updated if
+            -- body_holsters_visible_weapons is false
+            return
+        end
+
         weapon:SetParent(holsterEnt, slot.attachment)
         local localAngles = weapon:LoadQAngle("holsteredLocalAngles")
             or getDesiredHolsteredWeaponLocalAngles(weapon, slot, slot.storedWeaponHand)
