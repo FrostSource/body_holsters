@@ -109,6 +109,9 @@ EasyConvars:SetPersistent("body_holsters_use_actual_weapons", true)
 EasyConvars:RegisterConvar("body_holsters_animate", true, "If holstered weapons should animate to their position", 0)
 EasyConvars:SetPersistent("body_holsters_animate", true)
 
+EasyConvars:RegisterConvar("body_holsters_haptics", true, "Whether to use haptic feedback when hovering over holster slots", 0)
+EasyConvars:SetPersistent("body_holsters_haptics", true)
+
 
 ---All convar work that needs to be done after convars have finished setting up
 ---Extra checks need to happen here to make sure we don't overwrite user's custom values

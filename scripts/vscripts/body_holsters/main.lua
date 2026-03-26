@@ -143,6 +143,15 @@ function BodyHolsters:IsDualWieldModeEnabled()
     return dualWieldMode
 end
 
+---Fires a haptic pulse on a hand if body_holsters_haptics is enabled.
+---@param hand CPropVRHand
+---@param strength 0|1|2
+function BodyHolsters:FireHapticPulse(hand, strength)
+    if EasyConvars:GetBool("body_holsters_haptics") then
+        hand:FireHapticPulse(strength)
+    end
+end
+
 ---When you look down your head origin moves forward and down but body and arms stay the same place
 ---This causes a perceived disparity between where the slots actually are vs where you think they should be
 ---This variable artificially moves slots back and up based on how much the player is looking down
@@ -705,7 +714,7 @@ local inputHolsterCallback = function(self, event)
             if slot.storedWeapon ~= nil and slot.storedWeapon ~= weapon then
                 notifyInvalid = true
             elseif slot.storedWeapon == nil or slot.storedWeapon == weapon then
-                hand:FireHapticPulse(1)
+                BodyHolsters:FireHapticPulse(hand, 1)
                 notifyInvalid = false
 
                 -- Skip weapon switch for this frame to avoid update spamming
@@ -789,7 +798,7 @@ local inputUnholsterCallback = function(self, event)
                     unholsterDelayedLogic(stored, slot, hand)
                 end
 
-                hand:FireHapticPulse(2)
+                BodyHolsters:FireHapticPulse(hand, 2)
                 break
             end
         end
@@ -850,7 +859,7 @@ local function playerHolsterThink()
             then
                 if not handsWithinSlot[hand] then
                     handsWithinSlot[hand] = true
-                    hand:FireHapticPulse(1)
+                    BodyHolsters:FireHapticPulse(hand, 1)
                 end
 
                 if slot.storedWeapon and hand.ItemHeld == nil and slot.disableBackpack then
