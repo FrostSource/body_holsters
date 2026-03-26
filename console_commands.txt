@@ -23,6 +23,11 @@ Default = 1
 When body_holsters_visible_weapons is 1, weapons will animate into their holstered position instead of instantly snapping into place.
 [i]This convar is persistent with your save file.[/i]
 
+[*][b]body_holsters_haptics[/b]
+Default = 1
+When body_holsters_haptics is 1, the controller will vibrate when near an available holster slot.
+[i]This convar is persistent with your save file.[/i]
+
 [*][b]body_holsters_increase_offhand_side_radius[/b]
 Default = 1
 Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.
