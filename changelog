@@ -6,6 +6,8 @@ Added support for holstering dual wielded weapons, supporting Akimbo Pistol addo
 
 Added new body_holsters_haptics convar to control haptic vibrations.
 
+body_holsters_visible_weapons now updates weapon visibility immediately
+
 Update 8 (v2.0.0)
 
 Updated to AlyxLib v2.0.0
