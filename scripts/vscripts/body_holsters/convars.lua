@@ -19,7 +19,9 @@ end
 
 EasyConvars:RegisterConvar("body_holsters_visible_weapons", function()
     return isPlayerBodyEnabled()
-end, "Weapons are visibly attached to the player body.", 0)
+end, "Weapons are visibly attached to the player body.", 0, function()
+    BodyHolsters:UpdateHolsteredWeapons()
+end)
 EasyConvars:SetPersistent("body_holsters_visible_weapons", true)
 
 EasyConvars:RegisterConvar("body_holsters_increase_offhand_side_radius", "1", "Body slots on the non-dominant side of your body will have a slightly larger radius to accommodate for increased reach distance.", 0)
