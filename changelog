@@ -1,3 +1,7 @@
+Update 10 (v3.0.1)
+
+Added IsHandInAvailableSlot hook for other mods to use.
+
 Update 9 (v3.0.0)
 
 Added support for Ritsuka's player body addon, attaching weapons to the body.

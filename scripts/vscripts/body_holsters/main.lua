@@ -51,7 +51,7 @@ require "body_holsters.convars"
 
 require "alyxlib.controls.input"
 
-local version = "v3.0.0"
+local version = "v3.0.1"
 
 ---@class BodyHolsters
 BodyHolsters = {}
