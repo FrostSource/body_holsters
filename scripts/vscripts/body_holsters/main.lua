@@ -403,6 +403,27 @@ function BodyHolsters:CanStoreInSlot(slot, weapon)
 end
 
 ---
+---Checks if the hand is within range of a slot it can holster or unholster from.
+---
+---@param hand CPropVRHand # The hand to check
+---@param weapon? EntityHandle # Optional weapon to check if it can be holstered
+function BodyHolsters:IsHandInAvailableSlot(hand, weapon)
+    local slot = getNearestSlots(getHandPosition(hand), hand)[1]
+    if slot ~= nil then
+        weapon = weapon or getWeaponFromHand(hand)
+
+        return (self:CanStoreInSlot(slot, weapon)
+            or (
+                hand.ItemHeld == nil
+                and slot.storedWeapon ~= nil
+                and slot.storedWeaponHand == hand
+                ))
+    end
+
+    return false
+end
+
+---
 ---@param slot BodyHolstersSlot
 ---@param hand CPropVRHand
 ---@return Vector
